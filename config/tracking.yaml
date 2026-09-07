@@ -1,0 +1,24 @@
+# tracking_node 설정 — 3일차 실측 반영
+# 설계문서 재활용로봇_설계문서_v27.txt 13절 작업 순서 참고
+
+tracking_node:
+  ros__parameters:
+    camera.fx: 1427.528173
+    camera.fy: 1429.801911
+    camera.cx: 674.333213
+    camera.cy: 359.179031
+    camera.dist_coeffs: [0.083788, -0.006721, -0.005860, 0.007959, 0.0]
+
+    # 작업 C 결과 (3일차, 12샘플 hand-eye calibration — 1차 9샘플은
+    # 회전 다양성 부족(4도)으로 실패, 재작업하여 통과. 설계문서
+    # v29 13절 참고)
+    # [정정 — 6일차, v61 회신] 특정 계정의 홈 디렉터리가 박힌
+    # 절대경로였던 걸 패키지 상대경로로 변경 — 관제 PC 등 다른
+    # 계정/경로로 옮겨도 그대로 동작한다(resolve_model_path로 해석,
+    # tracking_node.py 참고). 반드시 T_cam2base.npy만 쓸 것 —
+    # 같은 폴더의 _suspect 접미사 파일들은 실패작이니 쓰지 말 것
+    # (캘리브레이션_안내.md 참고).
+    camera.cam_to_base_path: "calib_capture/T_cam2base.npy"
+
+    # 작업 B 결과 (3일차, 5점 수동 티칭, 잔차 최대 0.33mm)
+    belt_plane.abcd: [-0.003466, 0.005640, 0.999978, -316.7869]
