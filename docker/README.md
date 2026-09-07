@@ -13,10 +13,27 @@ opencv-python 제거 + 시스템 python3-opencv 사용"으로 우회했는데,
 충돌 자체를 없애주지는 않습니다. 대신 이 환경을 호스트의 다른
 설정과 분리해서 재현 가능하게 만들어줍니다.
 
+## [중요] 이미지에는 코드만, 설정·캘리브레이션은 볼륨 마운트
+
+**[정정 — 팀 피드백 반영]** 처음엔 `rocycle_robot/` 전체를 이미지에
+구웠는데, 그러면 캘리브레이션 값이 바뀔 때마다(관제 PC 물리 배치가
+바뀌거나 재캘리브레이션할 때) 이미지를 다시 빌드해야 합니다.
+```
+이미지에 굽는 것        코드만: rocycle_robot/, setup.py, package.xml
+볼륨 마운트하는 것      config/, calib_capture/, models/
+```
+캘리브레이션 값이 바뀌면 파일만 바꾸고 컨테이너를 재시작하면
+됩니다(이미지 재빌드 불필요) — 아래 실행 명령 참고.
+
+**[안전] 볼륨을 안 걸면 config_loader가 파일을 못 찾아 노드가 죽습니다
+(에러 로그와 함께 즉시 종료)** — v61이 우려했던 "캘리브레이션 없어도
+조용히 뜨는" 실패 모드와 달리, 이 경우는 시끄럽게 죽으므로 오히려
+바로 알아차릴 수 있습니다.
+
 ## 빌드
 
 ```bash
-cd rocycle_robot   # docker/Dockerfile을 이 디렉터리 기준으로 작성함
+cd rocycle_robot   # 이 디렉터리(패키지 루트)를 빌드 컨텍스트로 사용
 docker build -f docker/Dockerfile -t rocycle-tracking-node .
 ```
 
@@ -37,6 +54,9 @@ docker run --rm -it \
   --network host \
   --gpus all \
   --device=/dev/video2 \
+  -v "$(pwd)/config:/workspace/rocycle_robot/config:ro" \
+  -v "$(pwd)/calib_capture:/workspace/rocycle_robot/calib_capture:ro" \
+  -v "$(pwd)/models:/workspace/rocycle_robot/models:ro" \
   -e ROS_DOMAIN_ID=30 \
   -e RMW_IMPLEMENTATION=rmw_cyclonedds_cpp \
   rocycle-tracking-node
@@ -50,25 +70,43 @@ docker run --rm -it \
 재부팅하면 번호가 바뀔 수 있습니다, `/dev/v4l/by-id/` 경로 고정을
 권장합니다(CLAUDE.md 4-4절과 동일한 주의사항).
 
+**`-v` 세 줄은 호스트 경로(`$(pwd)/config` 등)를 실제 위치로
+바꾸세요** — 위 예시는 패키지 루트에서 실행한다고 가정한 것입니다.
+`:ro`(read-only)로 마운트해서 컨테이너 안에서 캘리브레이션 파일을
+실수로 고치는 걸 막았습니다.
+
 **usb_cam 노드는 이 컨테이너 안에 없습니다** — 별도로(컨테이너
 안이든 호스트든) 띄워야 `/image_raw`가 발행됩니다. 컨테이너
-안에서 함께 띄우려면:
-```bash
-ros2 run usb_cam usb_cam_node_exe --ros-args \
-  -p video_device:=/dev/video2 -p image_width:=1280 \
-  -p image_height:=720 -p pixel_format:=mjpeg2rgb -p framerate:=30.0 &
-python3 -m rocycle_robot.tracking_node
+안에서 함께 띄우려면 위 `docker run`의 커맨드를 오버라이드해서
+`usb_cam_node_exe`와 `tracking_node`를 같이 실행하는 방법을
+팀에서 정할 것.
+
+## [팀 확인 필요] conveyor_node는 컨테이너 밖(호스트)에서 실행 권장
+
+**시리얼 포트(`/dev/ttyUSB*`/`/dev/ttyACM*`)를 컨테이너에 넘기려면
+`--device`가 필요하지만, `conveyor_node`는 의존성이 가볍고
+(`std_srvs`만 필요) 시리얼 장치 하나만 쓰므로 굳이 컨테이너에
+넣지 않고 호스트에서 그냥 `python3 -m rocycle_robot.conveyor_node`
+로 실행하는 게 더 단순합니다.** `tracking_node`(컨테이너 안)는
+`/conveyor/set_speed`·`/conveyor/stop` 서비스를 ROS2 네트워크로
+호출할 뿐 시리얼을 직접 열지 않으므로, `--network host`만 걸려
+있으면 컨테이너 안에서도 호스트의 `conveyor_node`를 정상적으로
+호출할 수 있습니다(서비스 호출이지 시리얼 직접 접근이 아님).
+
+정리하면:
 ```
-(이미지가 위 Dockerfile CMD를 오버라이드하는 예시 -- 실제로는
-`docker run`의 커맨드 인자나 별도 진입 스크립트로 두 프로세스를
-같이 띄우는 방법을 팀에서 정할 것)
+컨테이너 안   tracking_node (+ 필요시 usb_cam)
+호스트        conveyor_node, (팀원 STT/TTS 컨테이너와는 별개)
+```
 
 ## 확인되지 않은 것 (팀에서 실제로 테스트 필요)
 
 ```
 [ ] 이미지가 실제로 빌드되는가(numpy/torch 버전 충돌 없이)
 [ ] GPU가 컨테이너 안에서 인식되는가(torch.cuda.is_available())
-[ ] --network host로 호스트의 다른 ROS2 노드(conveyor_node 등)와
-    실제로 통신되는가
+[ ] --network host로 호스트의 conveyor_node와 실제로 통신되는가
+    (tracking_node 컨테이너 -> 호스트 conveyor_node 서비스 호출)
 [ ] 카메라 장치가 컨테이너 안에서 정상 인식되는가
+[ ] 볼륨 마운트한 config/calib_capture/models가 정상 로드되는가
+    (기동 로그에 "calibration ready=True" 확인)
 ```

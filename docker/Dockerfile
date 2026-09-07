@@ -51,13 +51,21 @@ RUN pip install --break-system-packages --no-cache-dir \
 #   pip install --break-system-packages --no-cache-dir torch \
 #     --index-url https://download.pytorch.org/whl/cu121   # 예시, 버전 확인 필요
 
-WORKDIR /workspace
-COPY rocycle_robot/ /workspace/rocycle_robot/
+# [정정 — 팀 피드백 반영] config/calib_capture/models는 이미지에
+# 굽지 않는다 -- 캘리브레이션 값이 바뀔 때마다 이미지를 다시
+# 빌드해야 하는 걸 피하기 위해 **런타임에 볼륨 마운트**한다(아래
+# docker/README.md의 `docker run -v` 예시 참고). 여기서는 코드만
+# COPY한다. **[안전] 볼륨을 안 걸면 config_loader가 파일을 못 찾아
+# 노드가 죽는다(FATAL) -- v61 4-2절이 우려한 "조용히 깨짐"과 달리
+# 이건 시끄럽게 죽으므로 오히려 안전한 실패 모드다.**
+WORKDIR /workspace/rocycle_robot
+COPY rocycle_robot/ ./rocycle_robot/
+COPY setup.py package.xml ./
 
 ENV PYTHONPATH=/workspace/rocycle_robot:$PYTHONPATH
 
 # entrypoint에서 ROS2 환경 소싱 후 실행 -- 아직 colcon 설치 체계가
-#없어(CLAUDE.md 참고) source-path 방식 그대로 유지.
+# 없어(CLAUDE.md 참고) source-path 방식 그대로 유지.
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
