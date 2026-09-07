@@ -1,0 +1,68 @@
+# 품목 -> 처리 경로 매핑 (원칙3 외부화 — 판정 로직에 품목명 분기를
+# 두지 않고 이 표를 조회해서 동작한다).
+#
+# bin_teach_points.py의 design_doc_bin_name과 일치해야 한다.
+# `type: bin`이면 해당 bin으로 파지->배치. `type: human_handoff`면
+# 아래 `handoff` 절 설정으로 실제 순응제어 핸드오버를 수행한다
+# ([완료 — 6일차] `_handoff_item()`, task_compliance_ctrl 기반).
+
+routing:
+  can: {type: bin, bin: can_bin}
+  paper: {type: bin, bin: paper_bin}
+  battery: {type: bin, bin: battery_bin}
+  pet_unlabeled: {type: bin, bin: plastic_bin}
+  pet_labeled: {type: human_handoff}
+  plastic_bag: {type: bin, bin: review_bin}
+
+place_open_wait_sec: 1.0   # [원문] 6일차 사이클 측정 스크립트에서 쓴 값
+
+# 무게 측정으로 내용물 여부 판정 (원칙7 — 비전으로 못 보는 걸
+# 힘으로 본다, v31 팀결정: can으로 무게측정 이동). 파지 직전(그리퍼
+# 비어있음, 하강 전)과 파지 후(rise 완료)의 `get_workpiece_weight`
+# 차이로 물체 무게를 구해 임계값 초과 시 review_bin으로 보낸다.
+# **[실측 — 6일차, 구 속도 기준 검증 완료]** 절대값은 그리퍼 무게
+# 오차로 빈 상태에서도 ~1.2~1.3kg으로 흔들리지만, 상대(파지전후
+# 차이) 측정은 그램 단위로 정밀했다: 빈 캔 net=16.3g(threshold
+# 미만 -> can_bin 정상), 실리카 샌드 채운 캔 net=86.9g(threshold
+# 초과 -> review_bin 정상).
+# **[실측, 재진단 — 6일차, 속도 상향 후]** 새 속도(travel 2.999s/
+# descent 1.882s)에서 빈 캔이 반복적으로 review_bin 오배치됨
+# (net 153.8g/125.3g). 처음엔 "정지 직후 settle 부족"으로 오진단
+# 했으나, **벨트/로봇을 완전히 정지한 채로도 단일 측정이 45g 폭
+# (1.310~1.355kg, 8회)으로 흔들림을 확인** -- 벨트 진동이 아니라
+# 힘센서 자체의 고유 노이즈가 threshold(30g)와 비슷한 규모였던 것.
+# 수정: baseline/post-pick 둘 다 `_get_workpiece_weight_avg()`로
+# 교체(평균), baseline은 extra_gap 계산 이전으로 이동(타이밍 버그
+# 수정, CLAUDE.md 참고).
+# **[팀결정 — v52 회신] threshold 30g->80g 상향 + 시연용 내용물
+# 무게를 현재(86.9g)의 약 2배(~175g)로 늘리는 것으로 잠정 결정.**
+# 근거: 정지 상태 고립 드리프트 실험(±38g, CLAUDE.md 참고)만으로는
+# 빈 캔(16.3g, 구 속도 기준)+드리프트(38g)=54g가 threshold(30g)를
+# 넘어 구조적 오탐이 생긴다는 계산 -- 신호(내용물 무게)를 키워
+# 드리프트를 압도하는 방향. **[전제, 미검증] 이 계산은 여러 버그
+# 수정 이전 값(16.3g/86.9g)과 정지 상태 고립 드리프트(±38g)를
+# 근거로 한 것인데, 실제 파지 사이클(다른 동작 뒤에 측정)에서는
+# 이 세션 후반 net 값이 -87.9g~+153.8g로 훨씬 넓게 흔들린 사례가
+# 있어 80g/175g이 최종값인지는 재검증(빈 캔 5회/내용물 캔 5회,
+# 분포 확인) 전까지 확정 아님.**
+weight_check:
+  can:
+    threshold_kg: 0.08
+    review_bin: review_bin
+
+# 순응제어 기반 사람 핸드오버 (`_handoff_item()`, 6일차 구현).
+# 새 x/y 좌표를 만들지 않고 `_execute_pick`이 이미 도달 검증한
+# 벨트 상공 컬럼에서 z만 extra_rise_mm만큼 더 올려 제시 높이로
+# 쓴다(안전 절 참고 — 새 자세 탐색 위험 회피). stiffness/
+# release_threshold_mm은 CLAUDE.md 안전 절의 v25 예비 시행값
+# (저강성 500, 잠정 release 임계값 10mm, TCP 변위 36.8mm까지
+# SAFE_OFF 없음 확인)을 그대로 가져온 것 — 이 값 자체가 10회
+# 연속 검증을 거친 것은 아직 아니다(과대 청구 금지).
+handoff:
+  extra_rise_mm: 120.0
+  stiffness: [500.0, 500.0, 500.0, 100.0, 100.0, 100.0]
+  release_threshold_mm: 10.0
+  timeout_sec: 15.0
+  poll_interval_sec: 0.3
+  compliance_transition_sec: 0.5
+

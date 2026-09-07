@@ -1,0 +1,36 @@
+# 최소 충돌 모델 — 웹 Claude v32 2절 제안, CLI가 평탄화(flat)해서 구현.
+# 설계문서 v29 9절 스키마 참고. 로더: rocycle_robot.geometry.obstacles.
+#
+# 규칙: 각 항목의 xy_bounds 안에서는 z가 z_floor 아래로 못 내려간다.
+# 완전한 경로 계획이 아니라 목표점 하나만 검사하는 최소 구현이다
+# (v32 2-5절 구현 범위 — MoveIt류 경로계획/동적 장애물 회피는 하지 않음).
+# 값이 null인 항목은 아직 실측/티칭 전이라 검사에서 제외된다
+# (load_obstacles_from_dict가 건너뜀).
+
+obstacles:
+  belt:
+    # 5점 벨트 평면 티칭 범위(config/belt_plane_teach_points.py) +
+    # 약간의 여유. z_floor는 5점 중 최고점(far-left, 320.61mm)에
+    # 여유를 더한 값 — 이 아래로는 xy 범위 안에서 진입 금지.
+    xy_bounds: [164.0, 670.0, -289.0, -230.0]  # [x_min, x_max, y_min, y_max]
+    z_floor: 321.0
+    note: >-
+      테이블면(약 241.8mm, 벨트면보다 75mm 낮음)부터 벨트면(약
+      316.8~320.6mm)까지 롤러·프레임이 차지하는 입체 구간 — 3일차
+      충돌사고(목표 z=294.69mm, 이 구간 안이었음)의 원인 구간.
+
+  # 통 5개 — 통 도착 후 티칭 시 xy_bounds/z_floor 함께 채울 것
+  # (설계문서 v30 D절 체크리스트에 반영). [결정 — v34, 웹 3-3절]
+  # z_floor는 통 "입구/상단"이 아니라 **통 바닥 높이**로 설정한다
+  # — PLACE 동작이 그리퍼를 통 안까지 내려야 하므로, 입구 높이를
+  # z_floor로 두면 정상 PLACE 동작 자체가 매번 거부된다. 통 벽과의
+  # 충돌은 이 규칙으로 못 막지만, 통 접근/배치는 티칭된 고정
+  # 자세로만 이뤄지는(수직 접근) 전제 안에서는 허용 가능(v34 3-3절).
+  can_bin: null
+  plastic_bin: null
+  paper_bin: null
+  battery_bin: null
+  review_bin: null
+
+  # 고정 카메라 마운트 — 미실측
+  camera_mount: null
