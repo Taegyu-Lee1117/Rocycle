@@ -1425,8 +1425,32 @@ class TrackingNode(Node):
 
         h_vel = [mt["horizontal_vel"], mt["horizontal_acc"]]
         bin_name = "review_bin"
-        hover_pose = get_bin_pose(bin_name, "hover")
-        place_pose = get_bin_pose(bin_name, "place")
+        # [버그 발견·수정 — 8일차, 관제PC 실물+사용자 육안 확인]
+        # `get_bin_pose`가 주는 자세(rx/ry/rz)를 그대로 쓰면 파지
+        # 자세 대비 67.33° 돌아간 채로 들어가는데, 라벨 페트병은
+        # 그 자세에서 길이가 review_bin 가로폭을 넘어 안 들어간다
+        # (로그는 도달 확인만 보므로 정상 완료로 보였음 -- 실제로는
+        # 그리퍼가 열렸을 때 통에 안 들어가고 걸치거나 떨어짐).
+        # **[팀결정 — 사용자 확인] 무게초과 캔/plastic_bag은 기존
+        # 회전 배치 그대로 두고(원통형이라 자세 무관, 비닐도 문제
+        # 없음 확인됨), pet_labeled(이 함수, 핸드오버 타임아웃
+        # 경로에서만 review_bin에 감)만 파지 각도 그대로 회전 없이
+        # 진입하도록 예외 처리한다.** `_place_item`(1151~1152행,
+        # 무게초과 캔/비닐이 쓰는 일반 배치 경로)은 건드리지 않음
+        # -- review_bin을 쓰는 경로가 이 함수뿐이라 별도 config
+        # 스키마 없이 여기서만 자세를 덮어쓰는 것으로 충분하다.
+        # x/y/z(통 위치)는 그대로 쓰고 rx/ry/rz만 파지 때 쓴 값으로
+        # 교체한다.
+        # [전제, 미검증] 이 (좌표, 자세) 조합은 한 번도 실행된 적
+        # 없다 -- 실물 투입 전 반드시 빈 그리퍼로 먼저 이동시켜
+        # 도달성/그리퍼-통벽 간섭을 확인할 것(4일차 "상승 없이
+        # 이동하면 그리퍼가 통을 밀어버린" 사고 전례 있음,
+        # obstacles.yaml의 review_bin은 미실측 상태).
+        bin_xyz_hover = get_bin_pose(bin_name, "hover")[:3]
+        bin_xyz_place = get_bin_pose(bin_name, "place")[:3]
+        pick_rpy = [mt["belt_hover_rx"], mt["belt_hover_ry"], mt["belt_hover_rz"]]
+        hover_pose = bin_xyz_hover + pick_rpy
+        place_pose = bin_xyz_place + pick_rpy
 
         self.get_logger().info(f"[HANDOFF] {item_key} -> {bin_name} (timeout): move to bin hover")
         self._call_move_line(hover_pose, h_vel, h_vel, mode=0)
