@@ -107,9 +107,29 @@
      주기적으로 새 이미지를 받아 canvas에 그리는 방식(폴링) --
      bbox 오버레이(v66 4-3절)도 같은 canvas 위에 그리면 되므로
      나중에 파이프라인이 합쳐진다는 이점도 있음. */
-  #videoCanvas { position: fixed; inset: 0; width: 100%; height: 100%; background: #000; z-index: 0; }
+  /* [완료 -- 8일차, v64 원안 복원] 하단 영상 영역 좌우 2분할.
+     v64 원안이 "좌 고정카메라(C270)+검출 오버레이 / 우 손목카메라
+     (RealSense)"였는데 v67 축소 과정에서 손목캠이 구현에서 누락됐다.
+     조작 요소는 이미 #topRightCluster로 떠 있으므로 여기서는 영상만
+     둘로 나눈다. */
+  #videoArea { position: fixed; inset: 0; display: flex; z-index: 0; background: #000; }
+  .video-pane { position: relative; flex: 1 1 50%; min-width: 0; overflow: hidden; }
+  .video-pane + .video-pane { border-left: 1px solid var(--border); }
+  .video-pane canvas { display: block; width: 100%; height: 100%; background: #000; }
+  /* [수정 -- 8일차, 실측] 처음엔 좌상단(top:10px)에 뒀는데 좌측
+     패널에서 #statusBar(상태 박스)에 가려졌다 -- 헤드리스 스크린샷으로
+     확인. 상태 박스는 좌상단 고정이므로 라벨을 하단으로 내린다. */
+  .pane-label {
+    position: absolute; left: 10px; bottom: 10px; z-index: 2;
+    font-size: 12px; color: var(--text-muted);
+    background: rgba(20,22,26,.7); padding: 3px 9px; border-radius: 6px;
+  }
+  /* [수정 -- 8일차, 실측] 좌하단 고정이었는데 2분할 후 좌측 패널
+     라벨과 겹쳤다(헤드리스 스크린샷 확인). 어느 한쪽 패널에 속한
+     정보가 아니라 카메라 전반의 상태 표시이므로 하단 중앙으로 옮긴다. */
   #videoPlaceholder {
-    position: fixed; left: 20px; bottom: 20px; z-index: 5;
+    position: fixed; left: 50%; transform: translateX(-50%);
+    bottom: 20px; z-index: 5;
     color: var(--text-muted); font-size: 13px;
     background: rgba(20,22,26,.75); padding: 6px 12px; border-radius: 8px;
   }
@@ -180,7 +200,16 @@
 
   <!-- ================= 메인 화면 ================= -->
   <div id="mainScreen">
-    <canvas id="videoCanvas"></canvas>
+    <div id="videoArea">
+      <div class="video-pane">
+        <canvas id="videoCanvas"></canvas>
+        <div class="pane-label">고정 카메라 · 검출</div>
+      </div>
+      <div class="video-pane">
+        <canvas id="wristCanvas"></canvas>
+        <div class="pane-label">손목 카메라</div>
+      </div>
+    </div>
     <div id="videoPlaceholder">카메라 상태 확인 중...</div>
     <div id="statusBar">
       <div id="stateText">연결 중...</div>
@@ -258,6 +287,15 @@
   // bbox 드로잉(`/ui/detections` 기반, v66 3-1절)은 별건으로 남는다 --
   // 서버가 그려주는 이 화면 위에 나중에 얹으면 되므로 배타적이지 않다.
   const VIDEO_TOPIC = qs.get("video_topic") || "/recycle_detection/image";
+  // [완료 -- 8일차] 손목 카메라(RealSense). v64 원안의 우측 패널.
+  const WRIST_TOPIC = qs.get("wrist_topic") || "/camera/camera/color/image_raw";
+  // [완료 -- 8일차] 전송량 절감. 패널이 화면의 절반이라 원본
+  // 1280x720을 그대로 받을 이유가 없다 -- 픽셀 1/4 + 품질 절반으로
+  // 대략 1/8 절감 추정[추론]. 감시용 화면이라 화질 손실은 체감되지
+  // 않을 것으로 본다. 쿼리로 덮어쓸 수 있게 뒀다.
+  const VIDEO_W = qs.get("video_width") || "640";
+  const VIDEO_H = qs.get("video_height") || "360";
+  const VIDEO_Q = qs.get("video_quality") || "50";
 
   // [버그 발견·수정 -- 8일차, 관제PC 실측] `encodeURIComponent(topic)`을
   // 그대로 썼더니 "/"가 "%2F"로 인코딩되는데, web_video_server가 그걸
@@ -343,11 +381,21 @@
   // 나중에 파이프라인이 합쳐지는 이점도 있다.
   // ---------------------------------------------------------------
   const VIDEO_POLL_MS = 100; // 10fps -- UI 표시용이므로 충분(v72 3-3(d))
-  const vctx = videoCanvas.getContext("2d");
+  const wristCanvas = el("wristCanvas");
+
+  // [완료 -- 8일차] 패널 2개를 하나의 목록으로 다룬다. 아래 폴링이
+  // 이 배열을 **번갈아** 돌면서 한 번에 하나씩만 요청한다(이유는
+  // pollSnapshot 주석 참고).
+  const PANES = [
+    { canvas: videoCanvas, ctx: videoCanvas.getContext("2d"), topic: VIDEO_TOPIC },
+    { canvas: wristCanvas, ctx: wristCanvas.getContext("2d"), topic: WRIST_TOPIC },
+  ];
 
   function resizeVideoCanvas() {
-    videoCanvas.width = videoCanvas.clientWidth;
-    videoCanvas.height = videoCanvas.clientHeight;
+    for (const p of PANES) {
+      p.canvas.width = p.canvas.clientWidth;
+      p.canvas.height = p.canvas.clientHeight;
+    }
   }
   window.addEventListener("resize", resizeVideoCanvas);
   resizeVideoCanvas();
@@ -362,19 +410,28 @@
   // 정확한 서버측 원인은 못 밝힘). **수정**: 이전 요청이 완전히
   // 끝난(성공/실패 무관) 뒤에만 다음 요청을 예약하는 자기재귀
   // `setTimeout` 방식으로 교체 -- 동시에 최대 1개 요청만 유지된다.
+  // [중요 -- 8일차, 패널 2개로 늘릴 때] 위 "겹친 동시 요청" 문제
+  // 때문에 **패널마다 독립 폴링 루프를 돌리면 안 된다** -- 그 순간
+  // 동시 요청이 2개가 되어 같은 실패가 재현될 위험이 있다. 대신
+  // 하나의 체인이 PANES를 **번갈아** 요청한다: 동시 요청은 여전히
+  // 최대 1개로 유지되고, 각 패널은 절반 주기(약 5fps)로 갱신된다.
+  // 감시용 화면이라 패널당 5fps면 충분하다고 판단.
+  let paneIdx = 0;
   function scheduleNextPoll() {
+    paneIdx = (paneIdx + 1) % PANES.length;
     setTimeout(pollSnapshot, VIDEO_POLL_MS);
   }
   function pollSnapshot() {
+    const pane = PANES[paneIdx];
     const img = new Image();
     img.onload = () => {
-      const cw = videoCanvas.width, ch = videoCanvas.height;
+      const cw = pane.canvas.width, ch = pane.canvas.height;
       if (cw > 0 && ch > 0) {
         const scale = Math.min(cw / img.naturalWidth, ch / img.naturalHeight);
         const dw = img.naturalWidth * scale, dh = img.naturalHeight * scale;
-        vctx.fillStyle = "#000";
-        vctx.fillRect(0, 0, cw, ch);
-        vctx.drawImage(img, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
+        pane.ctx.fillStyle = "#000";
+        pane.ctx.fillRect(0, 0, cw, ch);
+        pane.ctx.drawImage(img, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
       }
       scheduleNextPoll();
     };
@@ -383,7 +440,8 @@
     // 계산해 보내줌, renderMain 참고). 폴링 실패 한두 번으로 화면
     // 표시를 바꾸지 않는다.
     img.onerror = scheduleNextPoll;
-    img.src = `http://${VIDEO_HOST}:${VIDEO_PORT}/snapshot?topic=${encodeTopicForQuery(VIDEO_TOPIC)}&type=jpeg&t=${Date.now()}`;
+    img.src = `http://${VIDEO_HOST}:${VIDEO_PORT}/snapshot?topic=${encodeTopicForQuery(pane.topic)}`
+      + `&type=jpeg&width=${VIDEO_W}&height=${VIDEO_H}&quality=${VIDEO_Q}&t=${Date.now()}`;
   }
   pollSnapshot();
 
