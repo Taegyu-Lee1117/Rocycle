@@ -46,21 +46,38 @@
   body{
     background:var(--bg);color:var(--fg);
     font-family:"Pretendard","Malgun Gothic",-apple-system,system-ui,sans-serif;
-    font-size:16px;-webkit-font-smoothing:antialiased;overflow:hidden;
+    font-size:18px;-webkit-font-smoothing:antialiased;overflow:hidden;
   }
   button{font-family:inherit;cursor:pointer;border:none;color:var(--fg)}
   .num{font-variant-numeric:tabular-nums}
   .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
   .hidden{display:none !important}
 
-  .app{height:100vh;display:grid;grid-template-rows:60px 1fr 68px;gap:8px;padding:8px}
+  /* [수정 -- 8일차, 사용자 지시] C270 메인 영상의 화면 비중을 줄이고
+     그만큼 하단 로그 레일과 우측 상태창을 키운다. 고정 카메라는
+     해상도를 낮춰도 되는 대신, 로그와 상태 정보가 시연 중 더 자주
+     읽히는 요소라는 판단. */
+  /* [수정 -- 8일차, 사용자 지시] 하단 로그 레일이 화면 전폭을 차지하면
+     사이드바 아래가 잘려서, 조작 칸이 화면 끝까지 못 내려온다.
+     **레일을 왼쪽(영상) 열에만 두고, 사이드바를 영상행+레일행에 걸치게**
+     한다 -- 그러면 조작 칸이 레일 높이만큼 아래로 더 내려온다.
+     이를 위해 `.app`을 2열 그리드로 바꾸고 `.side`를 `.main` 밖으로
+     꺼내 `.app` 직속 자식으로 만들었다(HTML도 같이 수정). */
+  .app{height:100vh;display:grid;
+    grid-template-columns:1fr 620px;
+    grid-template-rows:60px 1fr 96px;
+    gap:8px;padding:8px}
+  .app > .topbar{grid-column:1 / -1}
+  .app > .main{grid-column:1;grid-row:2;min-height:0}
+  .app > .side{grid-column:2;grid-row:2 / 4;min-height:0}
+  .app > .rail{grid-column:1;grid-row:3}
 
   /* ---------- 상단바 ---------- */
   .bar{
     background:var(--panel);border-radius:8px;
     display:flex;align-items:center;gap:22px;padding:0 18px;
   }
-  .brand{display:flex;align-items:center;gap:10px;font-size:15px;color:var(--fg-2);letter-spacing:.02em}
+  .brand{display:flex;align-items:center;gap:10px;font-size:16px;color:var(--fg-2);letter-spacing:.02em}
   .brand b{color:var(--fg);font-weight:500}
   .chip{
     display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 14px;
@@ -73,7 +90,7 @@
   .dot{width:7px;height:7px;border-radius:50%;background:currentColor}
   .spacer{flex:1}
   .pills{display:flex;gap:16px;align-items:center}
-  .pill{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--fg-3)}
+  .pill{display:flex;align-items:center;gap:7px;font-size:14px;color:var(--fg-3)}
   .pill i{width:7px;height:7px;border-radius:50%;background:var(--ok);display:block}
   .pill.off i{background:#3a4048}
   .pill.bad i{background:var(--bad)}
@@ -84,15 +101,15 @@
      418px를 추가로 15% 더 확대(481px) -- 웹 클로드 사전승인 없이
      사용자가 바로 반영을 지시함, 사후에 웹 클로드에 문서로 전달
      예정(사용자가 직접 요청한 것으로 명시). */
-  .main{display:grid;grid-template-columns:1fr 481px;gap:8px;min-height:0}
+  .main{display:grid;grid-template-columns:1fr;gap:8px;min-height:0}
 
   .stage{position:relative;background:#000;border-radius:8px;overflow:hidden}
   .stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block;background:#000}
   .feed{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
-  .feed span{font-family:var(--mono);font-size:15px;color:#2c3238;letter-spacing:.3em}
+  .feed span{font-family:var(--mono);font-size:16px;color:#2c3238;letter-spacing:.3em}
   .stage-msg{
     position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:3;
-    color:var(--fg-3);font-size:14px;background:rgba(20,22,26,.75);
+    color:var(--fg-3);font-size:15px;background:rgba(20,22,26,.75);
     padding:6px 12px;border-radius:8px;text-align:center;white-space:nowrap;
   }
 
@@ -101,19 +118,36 @@
     background:linear-gradient(transparent,rgba(0,0,0,.75));
     display:flex;align-items:center;gap:16px;padding:0 16px;
   }
-  .strip .nm{font-size:14px;color:#c8ced3}
+  .strip .nm{font-size:15px;color:#c8ced3}
   .strip .mt{font-size:12.5px;color:#7b838b;font-family:var(--mono)}
 
   /* ---------- 사이드바 ---------- */
-  .side{display:grid;grid-template-rows:228px auto 1fr auto;gap:8px;min-height:0}
+  /* [수정 -- 8일차, 사용자 지시] 4번째 칸(조작)을 1fr로 바꿔 남는
+     세로 공간을 조작 칸이 가져가게 한다. 이전엔 3번째 칸(처리 현황)이
+     1fr이라 비상정지 버튼 아래에 처리현황 카드의 빈 영역이 길게
+     남았다 -- 그 영역까지 조작 칸으로 흡수한다. */
+  /* [수정 -- 8일차, 사용자 지시] 조작 칸(4번째)을 비상정지 아래까지
+     넓힌다. 다만 조작 칸에 1fr을 주면 위 카드 내용이 늘어날 때
+     조작 칸이 화면 밖으로 밀려난다(실측) -- 그래서 **처리 현황
+     (3번째)에 minmax(0,1fr)** 을 줘서 남는 공간은 그쪽이 흡수하되
+     공간이 부족하면 먼저 줄어들게 하고, 조작 칸은 필요한 높이를
+     항상 확보(auto)하도록 한다. 조작 칸 자체의 내부 여백은 아래
+     `.card:last-child` 규칙으로 버튼이 채운다. */
+  /* [실측 조정 -- 1600x900] 손목캠 260px + 조작칸 확대를 동시에 하니
+     처리 현황이 눌려 막대그래프가 안 보였다. 손목캠은 썸네일 용도라
+     세로를 줄여도 정보 손실이 적고, 처리 현황(막대 6개 + 마지막 결과)이
+     세로를 더 필요로 한다 -- 손목캠을 minmax로 잡아 화면이 낮을 때
+     먼저 줄어들게 한다. */
+  .side{display:grid;grid-template-rows:minmax(150px,240px) auto minmax(0,1fr) auto;gap:8px;min-height:0}
+  .side > .card:nth-child(3){overflow-y:auto}
   .card{background:var(--panel);border-radius:8px;padding:15px 16px;min-height:0}
   .hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px}
   .hd h2{font-size:12.5px;font-weight:500;color:var(--fg-3);letter-spacing:.09em;text-transform:uppercase}
-  .hd span{font-size:13px;color:var(--fg-3)}
+  .hd span{font-size:14px;color:var(--fg-3)}
 
   /* 진행 단계 */
   .pipe{display:flex;align-items:center;gap:0;flex-wrap:wrap}
-  .st{flex:1;text-align:center;font-size:12px;color:var(--fg-3);padding:6px 2px;
+  .st{flex:1;text-align:center;font-size:13px;color:var(--fg-3);padding:6px 2px;
     border-top:2px solid #262b31;white-space:nowrap}
   .st.done{border-top-color:#2f5f4a;color:var(--fg-3)}
   .st.now{border-top-color:var(--ok);color:var(--ok);font-weight:500}
@@ -121,38 +155,48 @@
   /* 처리 현황 막대 */
   .row{display:grid;grid-template-columns:68px 1fr 30px;align-items:center;gap:12px;margin-bottom:11px}
   .row:last-child{margin-bottom:0}
-  .row .lb{font-size:14px;color:var(--fg-2);text-align:right}
+  .row .lb{font-size:15px;color:var(--fg-2);text-align:right}
   .track{height:7px;background:#22272d;border-radius:4px;overflow:hidden}
   .fill{height:100%;border-radius:4px;background:var(--ok);transition:width .3s ease}
   .fill.handoff{background:var(--info)}
   .fill.review{background:var(--warn)}
-  .row .vl{font-size:15px;font-weight:500;text-align:right}
+  .row .vl{font-size:16px;font-weight:500;text-align:right}
   .sep{height:1px;background:var(--line);margin:13px 0}
-  #lastResultText{font-size:13px;color:var(--fg-3);line-height:1.6}
+  #lastResultText{font-size:14px;color:var(--fg-3);line-height:1.6}
 
   /* 조작 */
-  .ops{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+  .ops{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  /* 조작 카드가 세로로 늘어난 만큼 버튼들도 같이 늘어나게 한다 */
+  /* [실측 조정] 처음 op 64 / estop 104로 잡았더니 조작 칸이 너무
+     커져서 처리 현황이 거의 다 눌렸다(1600x900 헤드리스 확인).
+     조작 칸은 "비상정지 아래 빈 여백을 흡수"하는 게 목적이지
+     처리 현황을 밀어내는 게 아니므로 값을 낮춘다. */
+  .side > .card:last-child .ops .op{min-height:46px}
+  .side > .card:last-child .estop-btn{min-height:76px}
   .op{height:38px;border:1px solid var(--line-2);background:transparent;border-radius:6px;
-    color:var(--fg-2);font-size:14px;font-family:inherit}
+    color:var(--fg-2);font-size:15px;font-family:inherit}
   .op:hover{background:var(--panel-2);color:var(--fg)}
   .op:active{filter:brightness(1.3)}
   .estop-btn{
     height:64px;border:0;border-radius:8px;background:#c33b3b;color:#fff;
-    font-size:17px;font-weight:500;font-family:inherit;letter-spacing:.03em;
+    font-size:19px;font-weight:500;font-family:inherit;letter-spacing:.03em;
     display:flex;align-items:center;justify-content:center;gap:10px;width:100%;
     box-shadow:0 2px 10px rgba(0,0,0,.4);
   }
   .estop-btn:hover{background:#d44444}
-  .estop-btn small{display:block;font-size:12px;font-weight:400;opacity:.75;letter-spacing:0}
+  .estop-btn small{display:block;font-size:13px;font-weight:400;opacity:.75;letter-spacing:0}
 
   /* ---------- 하단 알림 레일 ---------- */
+  /* [수정 -- 8일차, 사용자 지시] 레일이 영상 폭으로 좁아진 만큼
+     폰트를 줄이고 **2줄까지 접히도록**(wrap) 바꾼다 -- 가로 스크롤로
+     밀려나 안 보이는 것보다 두 줄로 보이는 게 낫다는 판단. */
   .rail{background:var(--panel);border-radius:8px;display:flex;align-items:center;
-    gap:0;padding:0 18px;overflow-x:auto;overflow-y:hidden}
-  .al{display:flex;align-items:center;gap:12px;padding-right:24px;margin-right:24px;
+    align-content:center;flex-wrap:wrap;gap:2px 0;padding:6px 14px;overflow:hidden}
+  .al{display:flex;align-items:center;gap:8px;padding-right:14px;margin-right:14px;
     border-right:1px solid var(--line);white-space:nowrap;transition:opacity .4s ease;flex-shrink:0}
   .al:last-child{border:0;margin-right:0;padding-right:0}
-  .al time{font-size:12.5px;color:var(--fg-3);font-family:var(--mono)}
-  .al p{font-size:14.5px;color:var(--fg-2)}
+  .al time{font-size:11px;color:var(--fg-3);font-family:var(--mono)}
+  .al p{font-size:12.5px;color:var(--fg-2)}
   .al.w p{color:var(--warn)}
   .al.e p{color:var(--bad)}
   .al i{width:6px;height:6px;border-radius:50%;background:#3a4048;display:block;flex-shrink:0}
@@ -163,7 +207,7 @@
   #estopBanner{
     position:fixed;top:0;left:0;right:0;z-index:60;
     background:var(--bad);color:#fff;text-align:center;
-    padding:11px;font-weight:600;font-size:17px;
+    padding:11px;font-weight:600;font-size:19px;
   }
 </style>
 </head>
@@ -195,6 +239,8 @@
         <span class="mt" id="stageStripText">대기</span>
       </div>
     </section>
+
+    </div><!-- /.main -->
 
     <aside class="side">
 
@@ -238,7 +284,6 @@
       </section>
 
     </aside>
-  </div>
 
   <footer class="rail" id="alertRail"></footer>
 
