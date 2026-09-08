@@ -250,6 +250,20 @@
   const VIDEO_PORT = qs.get("video_port") || "8080";
   const VIDEO_TOPIC = qs.get("video_topic") || "/image_raw";
 
+  // [버그 발견·수정 -- 8일차, 관제PC 실측] `encodeURIComponent(topic)`을
+  // 그대로 썼더니 "/"가 "%2F"로 인코딩되는데, web_video_server가 그걸
+  // 디코딩하지 않고 그런 이름의 토픽을 못 찾아 응답 본문 없이 연결을
+  // 끊어버렸다(`net::ERR_EMPTY_RESPONSE`) -- 개발PC 자원 소진 때문이라는
+  // 이전 진단은 틀렸다(curl 검증 시 미인코딩 URL로만 테스트해서
+  // 이 문제를 못 봤음, 관제PC에서 브라우저 경로로 100% 재현 확인).
+  // ROS 토픽명은 `[A-Za-z0-9_/]`만 쓰므로 "/"는 인코딩할 필요가 없다
+  // (쿼리 문자열 구조를 깨는 문자가 아님) -- 완전히 인코딩을 빼는
+  // 대신, 실제로 쿼리 구조를 깰 수 있는 문자만 골라서 이스케이프한다
+  // (video_topic이 URL 쿼리로 사용자 입력 가능한 값이라 방어적으로).
+  function encodeTopicForQuery(topic) {
+    return topic.replace(/[&=#% ]/g, (c) => encodeURIComponent(c));
+  }
+
   // [완료 -- 8일차, v69 회신] 통 이름 -> 화면 표시, 6개 막대/3색.
   // "플라스틱"은 plastic_bin(무라벨 전용, 시연에서는 항상 0일
   // 가능성이 높음)과 혼동될 수 있어 "플라스틱 통"으로 구체화했다
@@ -360,7 +374,7 @@
     // 계산해 보내줌, renderMain 참고). 폴링 실패 한두 번으로 화면
     // 표시를 바꾸지 않는다.
     img.onerror = scheduleNextPoll;
-    img.src = `http://${VIDEO_HOST}:${VIDEO_PORT}/snapshot?topic=${encodeURIComponent(VIDEO_TOPIC)}&type=jpeg&t=${Date.now()}`;
+    img.src = `http://${VIDEO_HOST}:${VIDEO_PORT}/snapshot?topic=${encodeTopicForQuery(VIDEO_TOPIC)}&type=jpeg&t=${Date.now()}`;
   }
   pollSnapshot();
 
