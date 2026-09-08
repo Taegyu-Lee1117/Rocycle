@@ -73,7 +73,7 @@
 | 품목 | 파지력 | close_wait | 파지 깊이(호버 기준) |
 |---|---|---|---|
 | can | 10N | 2.0s | 100mm |
-| paper | 10N | 2.0s | 100mm |
+| paper | 10N | 2.0s | 110mm(8일차, battery와 동일 높이로 상향) |
 | battery(AA) | 기본값(~40N) | 1.0s | 110mm (Y=-264 고정) |
 | pet_labeled/unlabeled | 기본값(~40N) | 1.0s | 100mm |
 | plastic_bag | 기본값(~40N) | 1.0s | [전제] |
