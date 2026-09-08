@@ -286,6 +286,20 @@
   START/PAUSE/RESUME/STATUS/STOP/UNKNOWN, 대문자). **[확정 — v58]
   STT는 상시 리스닝**(재호출 루프 불필요, `voice_bridge_node`는
   단순 구독자로 충분) — **PAUSE/RESUME도 시연에서 실사용 확정.**
+  **[정정 — 8일차, 관제PC Codex 로그 직접 확인] 위 "상시 리스닝"
+  확정이 실제 구현과 다르다.** 팀원의 `voice_processing/
+  get_keyword.py`는 `/get_keyword`(std_srvs/Trigger) 서비스가
+  호출될 때만 동작한다 — 호출되면 웨이크워드("Hello Rokey")를
+  최대 30초 기다렸다가 5초 녹음 → STT → 분류 → `/voice_command`
+  발행하고 끝난다. **자동 재호출 루프가 없어서, 매번 사람이 직접
+  `ros2 service call /get_keyword std_srvs/srv/Trigger "{}"`를
+  별도 터미널에서 호출해야 다음 명령을 들을 수 있다.** 즉 지금
+  상태로는 "상시 리스닝"이 아니라 "호출할 때만 한 번 듣는다" —
+  시연 중 계속 음성 명령을 받으려면 이 서비스 호출을 반복하는
+  운영 절차(또는 자동 재호출 루프)가 필요하다는 뜻이다. **오늘
+  추가한 관제 UI의 조작 버튼(시작/일시정지/재개/종료)이 이
+  공백의 실질적 대안이 된다** — 음성이 매번 재호출 필요라면
+  버튼 쪽이 더 안정적인 시연 경로일 수 있다.
   `voice_bridge_node.py`를 `/voice_command` 직접 구독으로 재작성
   (`IntentClassifier`/OpenAI 경로는 폴백용으로만 남김),
   `command_mapping.py`에 `status` 추가(speed_inquiry/handoff_ack는

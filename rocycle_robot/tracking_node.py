@@ -1238,7 +1238,32 @@ class TrackingNode(Node):
             f"[HANDOFF] {item_key}: rise {extra_rise_mm}mm to presentation height "
             "(같은 x/y 컬럼, 새 자세 탐색 안 함)"
         )
+        # [버그 발견·수정 — 8일차, 관제PC 팀원 실물 테스트에서 실측]
+        # 이 상승 이동(mode=1, 상대좌표)에 도달 확인이 아예 없었다 --
+        # `_execute_pick`/`_place_item`의 다른 MoveLine 호출은 전부
+        # 도달 여부를 검증하는데(CLAUDE.md "알려진 함정": MoveLine은
+        # success=True를 반환하면서 실제로는 안 움직일 수 있음) 이
+        # 호출만 빠져 있었다. **실제로 도달 실패가 났다**(팀원 실측:
+        # x=561.72, z=550 NOT REACHABLE) -- 확인 없이 다음 단계
+        # (순응모드 진입)로 그냥 넘어가면 물체가 원치 않는 자세/
+        # 높이에서 그대로 순응제어에 들어가게 되는 위험한 상태다.
+        # mode=1(상대좌표)이라 절대좌표 비교가 아니라 "이동 전후
+        # z 변화량이 의도한 만큼인지"로 확인한다.
+        pos_before_rise = self._get_current_posx()
         self._call_move_line([0.0, 0.0, extra_rise_mm, 0.0, 0.0, 0.0], v_vel, v_vel, mode=1)
+        pos_after_rise = self._get_current_posx()
+        actual_rise = pos_after_rise[2] - pos_before_rise[2]
+        if abs(actual_rise - extra_rise_mm) > 5.0:
+            self._publish_ui_alert(
+                "error", f"{item_key} 제시 높이 상승 실패 — 핸드오버 중단, 사람 확인 필요"
+            )
+            self.get_logger().error(
+                f"[HANDOFF] presentation-height rise did not reach target "
+                f"(원했던 상승 +{extra_rise_mm}mm, 실제 +{actual_rise:.1f}mm, "
+                f"pos_after={[round(v, 1) for v in pos_after_rise[:3]]}) -- "
+                "순응모드 진입 안 함, 들고 대기(사람이 확인 후 재시작할 것)"
+            )
+            return
 
         self.get_logger().info(
             f"[HANDOFF] entering compliance mode stx={stiffness} "
