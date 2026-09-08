@@ -1383,6 +1383,7 @@ class TrackingNode(Node):
                 break
 
         if released:
+            self._say("전달 완료했습니다.")
             self._call_gripper("o")
             time.sleep(self._item_routing.get("place_open_wait_sec", 1.0))
 
