@@ -1,4 +1,15 @@
-"""tracking_node -- fixed-camera detection tracking + pixel->base 3D (설계문서 5절).
+"""[중요 — 8일차, 팀결정] **이 파일은 관제PC 실제 운영에 쓰이지
+않는다.** 관제PC는 `tracking_pick_node.py`(Docker YOLO 검출 소비
+아키텍처, `/recycle_detection/detections` 구독)를 돌린다 — 여기
+`tracking_node.py`를 고쳐도 **시연에 전혀 반영되지 않는다.**
+
+이 파일은 (a) GPU/Docker 없는 개발PC에서의 dry-run 테스트용,
+(b) 안전 로직(핸드오버 등)을 먼저 설계·검증한 뒤
+`tracking_pick_node.py`로 이식하는 원본으로만 쓴다. 안전/동작
+관련 수정은 반드시 두 파일 모두에(또는 관제PC Claude에게 이식
+요청) 반영할 것 — 한쪽만 고치면 조용히 어긋난다.
+
+tracking_node -- fixed-camera detection tracking + pixel->base 3D (설계문서 5절).
 
 Status (6일차): plane-intersection math + belt_correction 전부 구현·검증
 완료(실제 파지로 확인). X축 1차원 칼만 필터 + 예측 시점 계산 구현
