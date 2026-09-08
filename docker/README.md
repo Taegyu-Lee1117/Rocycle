@@ -30,6 +30,28 @@ opencv-python 제거 + 시스템 python3-opencv 사용"으로 우회했는데,
 조용히 뜨는" 실패 모드와 달리, 이 경우는 시끄럽게 죽으므로 오히려
 바로 알아차릴 수 있습니다.
 
+## [팀 피드백 — 순서 중요] Docker 빌드 *전에* 호스트에서 먼저 확인
+
+**Docker 안에서 뭔가 안 되면 원인이 "컨테이너 문제"인지 "하드웨어
+자체 문제"인지 구분이 안 됩니다.** 호스트에서 먼저 되는 걸
+확인해두면 나중에 컨테이너에서 문제가 생겨도 하드웨어는 이미
+검증됐으니 컨테이너 설정만 의심하면 됩니다. 순서:
+
+```
+1. main pull
+2. [호스트] conveyor_node 실행 -> 벨트가 실제로 도는가
+   (확인_체크리스트.md 1절, 로봇/카메라 불필요)
+3. [호스트] 카메라 확인 -> /dev/video* 인식, usb_cam으로 30fps 나오는가
+   (확인_체크리스트.md 2절, 로봇 불필요)
+4. [호스트] nvidia-smi 실행 -> CUDA 버전 확인
+   **GPU가 컨테이너 안에서만 안 보이면 nvidia-container-toolkit
+   미설치가 가장 흔한 원인입니다** -- 호스트에서 nvidia-smi가
+   되는지부터 확인하고, 안 되면 드라이버 문제, 되는데 컨테이너
+   안에서만 안 보이면 nvidia-container-toolkit 설치 여부를 볼 것
+   (`dpkg -l | grep nvidia-container-toolkit`).
+5. 그 다음에 Docker 빌드
+```
+
 ## 빌드
 
 ```bash
@@ -37,15 +59,9 @@ cd rocycle_robot   # 이 디렉터리(패키지 루트)를 빌드 컨텍스트�
 docker build -f docker/Dockerfile -t rocycle-tracking-node .
 ```
 
-## GPU 확인 (빌드 전에)
-
-```bash
-nvidia-smi   # CUDA 버전 확인
-```
-
-pip 기본 torch가 이미 CUDA 지원 빌드일 가능성이 높지만, 안 맞으면
-`Dockerfile` 안의 주석 처리된 torch 설치 줄을 확인된 CUDA 버전에
-맞게 채워 넣고 다시 빌드하세요.
+pip 기본 torch가 이미 CUDA 지원 빌드일 가능성이 높지만, 위 4번에서
+확인한 CUDA 버전과 안 맞으면 `Dockerfile` 안의 주석 처리된 torch
+설치 줄을 채워 넣고 다시 빌드하세요.
 
 ## 실행
 
