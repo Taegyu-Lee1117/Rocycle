@@ -66,7 +66,7 @@ import rclpy
 from rclpy.executors import SingleThreadedExecutor
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
-from sensor_msgs.msg import CameraInfo
+from sensor_msgs.msg import CameraInfo, JointState
 from std_msgs.msg import String
 
 try:
@@ -301,6 +301,23 @@ class TrackingNode(Node):
         self._last_move_done_t: float | None = None
         self._conveyor_running = False
 
+        # [8일차, v118 1단계] 그리퍼 개폐 위치 -- 파지 성공/실패 자동 판정용.
+        # 지금까지 파지 성공률은 사람 눈으로만 확인했지 자동 측정이 없었다.
+        # **무게로는 판정이 안 된다**(실측: 빈 캔 16g 파지 시 net이
+        # +14.4/-10.9/+35.9g로 0을 사이에 두고 흩어짐 -- measure_pose로
+        # 개선한 뒤에도 그렇다). 반면 그리퍼 폭은 물체 유무가 반대편
+        # 끝으로 갈린다(빈 캔 +0.1780 vs 파지 실패 +0.7496).
+        # **[버그 발견·수정 -- 8일차, 실물 1회차]** 처음엔 메인 노드에
+        # 구독을 걸었는데, 파지 사이클 중 `_call_move_line` 등이 메인
+        # executor를 블로킹해 콜백이 안 돌았다 -- 실측에서 파지 후인데
+        # `joint=-0.4638`(완전 열림, 파지 시작 전 값)이 읽혀 "파지 성공"
+        # 오판이 났다(실제 값은 +0.1405). 토픽은 50Hz로 정상 발행 중이었다.
+        # **수정**: 로봇 서비스 호출에 쓰는 별도 노드/executor
+        # (`_robot_node`/`_robot_executor`)에 구독을 걸어, 블로킹 구간
+        # 에서도 `spin_until_future_complete`가 도는 동안 같이 갱신되게
+        # 한다. CLAUDE.md "알려진 함정"의 executor 분리와 같은 이유다.
+        self._gripper_joint: float | None = None
+
         # 로봇 실행 -- dry_run=False일 때만 생성. [버그 발견·수정 —
         # 6일차] 처음엔 self(=TrackingNode)에 클라이언트를 만들고
         # rclpy.spin_until_future_complete(self, future)로 기다렸는데,
@@ -367,6 +384,9 @@ class TrackingNode(Node):
             )
             self._gripper_client = self._robot_node.create_client(
                 SetCommand, "/onrobot/sendCommand"
+            )
+            self._robot_node.create_subscription(
+                JointState, "/onrobot_joint_states", self._on_gripper_joint, 10
             )
             self._get_posx_client = self._robot_node.create_client(
                 GetCurrentPosx, "/dsr01/dsr_controller2/aux_control/get_current_posx"
@@ -514,6 +534,66 @@ class TrackingNode(Node):
         )
         self.get_logger().debug(f"[MATCH] class={class_name} -> new track ({reason})")
         return None
+
+    def _on_gripper_joint(self, msg: JointState) -> None:
+        """그리퍼 개폐 위치 갱신 -- `finger_joint` 하나만 본다."""
+        try:
+            self._gripper_joint = msg.position[msg.name.index("finger_joint")]
+        except (ValueError, IndexError):
+            pass
+
+    def _check_grasp(self, item_key: str) -> bool | None:
+        """[8일차, v118 1단계] 파지 성공/실패 판정 -- **로그만, 동작 무변경.**
+
+        RG2는 평행 그리퍼라 닫기 명령 후 손가락이 멈춘 위치가 곧 물체
+        유무다: 허공이면 끝까지 닫히고(+0.7496), 물체가 있으면 그 폭에서
+        멈춘다. 임계값은 품목별로 `gripper_profiles.yaml`의
+        `grasp_fail_joint_rad`에 둔다 -- 단일 임계값은 불가능하다(건전지
+        +0.6232가 페트병 기준 임계 +0.5089를 넘어 매번 실패로 오판된다).
+
+        반환: True=파지 성공, False=파지 실패, None=판정 불가/미측정.
+
+        **`plastic_bag`은 항상 None**이다 -- 가장 두껍게 접은 상태가
+        +0.7141로 실패값과 0.0355rad 차이뿐이라(종이 재현 편차 0.007의
+        5배) 구분이 안 된다. 억지로 판정하면 파지 성공을 실패로 오탐해
+        성공률 통계를 오염시킨다.
+
+        **이 반환값으로 사이클을 바꾸지 않는다**(1단계). 2단계(실패 시
+        스킵 + 재추적)는 리허설 이후로 미뤄져 있다.
+        """
+        # 블로킹 직후라 마지막 콜백이 조금 오래됐을 수 있다 -- 판정
+        # 직전에 executor를 잠깐 돌려 최신값을 받는다(50Hz 발행이므로
+        # 0.3초면 충분하고도 남는다).
+        if self._robot_executor is not None:
+            deadline = time.monotonic() + 0.3
+            while time.monotonic() < deadline:
+                self._robot_executor.spin_once(timeout_sec=0.05)
+
+        th = self._gripper_profiles.get(item_key, {}).get("grasp_fail_joint_rad")
+        joint = self._gripper_joint
+        if joint is None:
+            self.get_logger().warn(
+                f"[GRASP] {item_key}: 그리퍼 위치 미수신 -- 판정 건너뜀"
+            )
+            return None
+        if th is None:
+            self.get_logger().info(
+                f"[GRASP] {item_key}: joint={joint:+.4f} (임계값 없음 -- 판정 제외, 기록만)"
+            )
+            return None
+
+        ok = joint < th
+        self.get_logger().info(
+            "[GRASP] %s: joint=%+.4f th=%+.4f margin=%+.4f -> %s"
+            % (item_key, joint, th, th - joint, "파지 성공" if ok else "파지 실패")
+        )
+        if not ok:
+            # 1단계에서는 알림만 -- 사이클은 그대로 진행된다.
+            self._publish_ui_alert(
+                "warn",
+                f"{item_key} 파지 실패 의심 (그리퍼 {joint:+.3f} >= {th:+.3f})",
+            )
+        return ok
 
     def _on_camera_info(self, msg: CameraInfo) -> None:
         """카메라 생존 확인 전용 -- 내용은 안 쓰고 도착 시각만 기록한다."""
@@ -1200,7 +1280,8 @@ class TrackingNode(Node):
             return None
         return sum(readings) / len(readings)
 
-    def _weigh_with_log(self, label: str, n: int = 5, interval: float = 0.15):
+    def _weigh_with_log(self, label: str, n: int = 5, interval: float = 0.15,
+                        drop_first: int = 1, n_log: int | None = None):
         """[8일차] 무게 측정 + **원시샘플·자세·직전이동 경과시간 로깅**.
 
         `_get_workpiece_weight_avg()`와 계산 결과는 동일하고(평균), 진단에
@@ -1215,13 +1296,37 @@ class TrackingNode(Node):
 
         `_last_move_done_t`는 직전 이동이 끝난 시각으로, 측정까지의
         settle 시간을 재기 위한 것이다.
+
+        **[완료 — 8일차, v112] `drop_first`로 첫 샘플을 버린다.**
+        실측 3건에서 첫 샘플이 나머지와 60~107g 어긋났고(0.75초 측정
+        구간 안에서 단조 증가/감소), 전체평균과 뒤 3개 평균이 30g
+        차이났다 -- threshold 80g 기준 무시 못 할 크기다.
+        `since_last_move`가 4.35초로 충분히 길었는데도 그렇다는 건
+        이동 후 settle이 아니라 **측정 자체의 초기 과도**로 보인다
+        [추론]. 버린 뒤 유효 샘플이 1개 이하로 남으면 버리지 않는다.
+        로그에는 `avg_all`(버리기 전 평균)과 원시샘플 전량을 같이
+        남겨 사후 비교가 가능하게 한다.
         """
-        readings = []
-        for _ in range(n):
+        # [완료 — 8일차, v115] **판정은 앞 n개로만, 로그는 n_log개까지.**
+        # 8일차 실측에서 샘플 내 추세가 회차마다 갈렸다(단조 감소/단조
+        # 증가/무작위). 웹 클로드 가설: "물리 정지 미보장"이 아니라
+        # **물체 형상별 잔류진동 주파수 차이**일 수 있다 -- 페트병은
+        # 길쭉해서 저주파, 캔은 짧은 원통이라 고주파라, 0.75초(5샘플)
+        # 구간에 담기는 진동 주기 수가 달라 단조로도 무작위로도 보인다.
+        # 검증하려면 더 긴 구간이 필요한데, **판정 구간을 늘리면 사이클
+        # 시간이 늘고 지금까지 쌓은 데이터와 조건이 달라진다** -- 그래서
+        # 판정은 앞 n개 그대로 두고 로그만 n_log까지 이어 받는다.
+        # 품목별(can vs pet_labeled)로 패턴이 갈리면 가설이 지지된다.
+        total = n_log if n_log is not None and n_log > n else n
+        raw = []
+        for _ in range(total):
             w = self._get_workpiece_weight()
             if w is not None:
-                readings.append(w)
+                raw.append(w)
             time.sleep(interval)
+
+        judged = raw[:n]  # 판정에 쓰는 구간 -- 기존과 동일
+        readings = judged[drop_first:] if len(judged) > drop_first + 1 else judged
 
         try:
             pos = self._get_current_posx()
@@ -1235,12 +1340,17 @@ class TrackingNode(Node):
             else float("nan")
         )
         avg = sum(readings) / len(readings) if readings else None
+        avg_judged = sum(judged) / len(judged) if judged else None
         self.get_logger().info(
-            "[WEIGHLOG] %s n=%d/%d avg=%s samples=%s pose=%s "
-            "since_last_move=%.2fs conveyor_running=%s"
+            "[WEIGHLOG] %s n=%d/%d avg=%s (avg_nodrop=%s dropped=%d) "
+            "samples_all=%s (총 %d개, 판정은 앞 %d개) "
+            "pose=%s since_last_move=%.2fs conveyor_running=%s"
             % (label, len(readings), n,
                f"{avg*1000:.1f}g" if avg is not None else "None",
-               "[" + ", ".join(f"{r*1000:.1f}" for r in readings) + "]",
+               f"{avg_judged*1000:.1f}g" if avg_judged is not None else "None",
+               len(judged) - len(readings),
+               "[" + ", ".join(f"{r*1000:.1f}" for r in raw) + "]",
+               len(raw), n,
                pos_s, since_move, self._conveyor_running)
         )
         return avg
@@ -1370,6 +1480,16 @@ class TrackingNode(Node):
         # 그대로 유지 -- 거기는 시간이 늘어도 다음 파지에 영향 없다.
         weight_check = self._item_routing.get("weight_check", {}).get(item_key)
         baseline_weight = (
+            # [정정 — 8일차, v118] **can-baseline만 n_log를 안 준다.**
+            # baseline은 벨트 가동 중, extra_gap 스냅샷 이전에 실행되므로
+            # 측정 시간이 그대로 `total_ahead`에 더해진다 -- 시간 자체는
+            # extra_gap에 자동 반영되어 under-prediction 버그는 안 나지만,
+            # **total_ahead가 커지면 칼만필터가 더 먼 미래를 예측해야 해서
+            # 오차가 증폭된다.** 6일차에 baseline을 5샘플->3샘플로 줄인
+            # 이유가 정확히 이것이었다. 15샘플(1.2초)은 3샘플(0.24초)의
+            # 5배라 그 회귀를 그대로 재현한다.
+            # 진동 패턴 확인은 시간이 안 중요한 지점(can-postpick,
+            # handoff-*-presented)에서만 한다.
             self._weigh_with_log("can-baseline", n=3, interval=0.08)
             if weight_check is not None
             else None
@@ -1441,6 +1561,12 @@ class TrackingNode(Node):
 
         self.get_logger().info(f"[EXEC] rise {depth}mm")
         self._call_move_line([0.0, 0.0, depth, 0.0, 0.0, 0.0], v_vel, v_vel, mode=1)
+
+        # [8일차, v118 1단계] 파지 성공/실패 자동 판정 -- 로그만 남기고
+        # 사이클은 그대로 진행한다. 상승 후에 재는 이유: 물체를 든 상태의
+        # 그리퍼 폭이 실제 운용 상태이고, 이 시점이면 닫기 동작이 확실히
+        # 끝나 있다.
+        self._check_grasp(item_key)
         self._holding = True
 
         # [v48 회신, v23 원칙 개정] 파지 성공 -- 배치+복귀 완료까지
@@ -1450,6 +1576,53 @@ class TrackingNode(Node):
         self.get_logger().info("[EXEC] pick complete, stopping conveyor for placement")
         self._call_conveyor("off")
         self._stage = "measure"
+
+        # [완료 — 8일차, v103] **`measure_pose` 복원 — 무게는 항상
+        # 같은 자세에서 잰다.**
+        #
+        # 8일차 실측: `baseline`은 이전 사이클 복귀 위치(x=300)에서,
+        # `post-pick`은 파지점(x=155~191)에서 재고 있었다 -- **X가 매
+        # 사이클 109~144mm 달라** 팔 뻗은 정도가 바뀌고 중력보상
+        # 계통오차가 그대로 `net`에 섞였다(진짜 ~16g인 빈 캔이 net
+        # +168.6g으로 찍혀 review_bin 오배치). 반례로 #7 사이클은
+        # 우연히 Δx=+9.0mm였는데 net +235.1g으로 내용물을 정확히
+        # 잡아냈다 -- **센서는 멀쩡하고 측정 자세가 문제**라는 방증.
+        #
+        # **[확인 — 설계문서 v32:2982 원문 대조]** 새 개념이 아니라
+        # 원래 설계(v10, `measure_pose`/`HOLD_AND_MEASURE`)의 복원이다:
+        # "관절 토크 역산 무게 측정이 로봇 자세에 의존(1일차 발견) --
+        # 파지 후 고정 `measure_pose`로 이동해 항상 동일 자세에서
+        # 측정". 1일차에 원인도 해법도 알고 있었는데 구현에서 이
+        # 단계가 누락됐던 것.
+        #
+        # 좌표는 `default_return_x`(300.0) + 벨트 상공 자세 -- 매
+        # 사이클 복귀에 이미 쓰던 위치라 도달성 리스크가 낮다.
+        # **파지 성공률에는 영향이 없다**(파지 완료 이후 동작이라
+        # 예측 구간 `total_ahead`와 무관) -- baseline을 앞으로 옮기는
+        # 안과의 결정적 차이이고, 6일차 extra_gap 버그가 재발하지
+        # 않는 이유다.
+        if weight_check is not None:
+            measure_pose = [
+                mt.get("default_return_x", 300.0),
+                mt["belt_hover_y"], mt["belt_hover_z"],
+                mt["belt_hover_rx"], mt["belt_hover_ry"], mt["belt_hover_rz"],
+            ]
+            self.get_logger().info(
+                f"[EXEC] move to measure_pose {[round(v, 1) for v in measure_pose[:3]]} "
+                "(무게는 항상 같은 자세에서 측정 -- v103)"
+            )
+            self._call_move_line(measure_pose, h_vel, h_vel, mode=0)
+            pos = self._get_current_posx()
+            if abs(pos[0] - measure_pose[0]) > 5.0 or abs(pos[1] - measure_pose[1]) > 5.0:
+                # 도달 실패해도 측정은 진행한다 -- 자세가 다르면 net이
+                # 부정확할 뿐이지만, 여기서 중단하면 이미 집은 물체를
+                # 든 채 멈춰버린다. 대신 로그로 남겨 그 회차를 사후에
+                # 걸러낼 수 있게 한다.
+                self.get_logger().warn(
+                    f"[EXEC] measure_pose 도달 실패 (got {[round(v, 1) for v in pos[:3]]}, "
+                    f"wanted {[round(v, 1) for v in measure_pose[:3]]}) -- "
+                    "측정은 진행하되 net 값 신뢰도 낮음"
+                )
 
         # [완료 — 6일차] 무게 측정으로 내용물 여부 판정(원칙7,
         # v31 팀결정: can으로 무게측정). Doosan 표준 API 사용, 파지
@@ -1469,7 +1642,7 @@ class TrackingNode(Node):
         # measurement 평균으로 줄인다.
         forced_bin = None
         if weight_check is not None:
-            weight_kg = self._weigh_with_log("can-postpick")
+            weight_kg = self._weigh_with_log("can-postpick", n_log=15)
             threshold = weight_check["threshold_kg"]
             net_weight = None
             if weight_kg is not None and baseline_weight is not None:
@@ -1663,7 +1836,7 @@ class TrackingNode(Node):
         #   (2) 정상 라벨 페트병의 무게 분포 실측치가 아직 없다.
         # 그래서 여기서는 **측정하고 로그만 남긴다** -- 정상 핸드오버가
         # 무게 때문에 막히는 회귀 없이 임계값 산정용 데이터를 모은다.
-        self._weigh_with_log(f"handoff-{item_key}-presented")
+        self._weigh_with_log(f"handoff-{item_key}-presented", n_log=15)
 
         # ------------------------------------------------------------------
         # 2) 순응모드 진입
