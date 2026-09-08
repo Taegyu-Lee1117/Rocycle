@@ -11,7 +11,12 @@
      날리고, 상태판/버튼/알림이 검은 배경 위에 개별 position:fixed로
      "떠 있어" 인상이 투박했다(사용자 스크린샷 지적). 시안
      `control_ui_mockup.html`을 그대로 채택 -- 로직(구독/발행/계산)은
-     전혀 안 건드리고 DOM·CSS만 교체한다. */
+     전혀 안 건드리고 DOM·CSS만 교체한다.
+     [완료 -- 8일차, v107 회신] 실물 확인 후 비율 조정 -- "C270
+     화면이 너무 크다, 사이드바/상단바/하단바를 키우고 전체 폰트를
+     15% 키워달라"는 사용자 피드백. `control_ui_mockup_v2.html`
+     수치를 그대로 반영(사이드바 348->418px, 상단바 52->60px,
+     하단레일 56->68px, 손목캠 196->228px, 폰트 전반 ~15% 확대). */
   :root{
     --bg:#0b0d10;
     --panel:#14171b;
@@ -25,14 +30,15 @@
     --warn:#f0b429;
     --bad:#ef5f5f;
     --info:#5aa9ff;
-    /* [추가 -- v104 시안 밖] 시안은 상태 4종(IDLE/RUNNING/PAUSED/
-       STOPPING)을 색 넷 규칙 안에서 표현하지 않았다(예시가 RUNNING
-       하나뿐). STOPPING을 PAUSED(--warn)와 시각적으로 구분하고
-       싶어(운전자가 "일시정지 중"과 "종료 처리 중"을 헷갈리면 안
-       되므로) 기존 화면에 있던 주황을 그대로 보존 -- 시안의 "색은
-       넷만 쓴다"는 원칙은 알림/막대 등 일반 요소 기준으로 두고,
-       상태칩만 예외로 5번째 색을 허용했다. */
-    --stopping:#e08a3c;
+    /* [추가 -- v104 시안 밖, v107에서 색조 정리] 시안은 상태
+       4종(IDLE/RUNNING/PAUSED/STOPPING)을 색 넷 규칙 안에서
+       표현하지 않았다(예시가 RUNNING 하나뿐). STOPPING을
+       PAUSED(--warn)와 시각적으로 구분하고 싶어(운전자가 "일시
+       정지 중"과 "종료 처리 중"을 헷갈리면 안 되므로) 주황을
+       유지 -- 일반 요소(막대/알림)는 색 넷 원칙 그대로, 상태칩만
+       예외로 5번째 색을 허용했다(웹 클로드 동의, v107 4절).
+       v2 시안에서 색값이 #e08a3c -> #ff8f4d로 조정돼 그대로 반영. */
+    --stopping:#ff8f4d;
     --mono:"SF Mono",ui-monospace,"Roboto Mono",Menlo,monospace;
   }
   *{box-sizing:border-box;margin:0;padding:0}
@@ -40,110 +46,116 @@
   body{
     background:var(--bg);color:var(--fg);
     font-family:"Pretendard","Malgun Gothic",-apple-system,system-ui,sans-serif;
-    font-size:14px;-webkit-font-smoothing:antialiased;overflow:hidden;
+    font-size:16px;-webkit-font-smoothing:antialiased;overflow:hidden;
   }
   button{font-family:inherit;cursor:pointer;border:none;color:var(--fg)}
   .num{font-variant-numeric:tabular-nums}
   .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
   .hidden{display:none !important}
 
-  .app{height:100vh;display:grid;grid-template-rows:52px 1fr 56px;gap:8px;padding:8px}
+  .app{height:100vh;display:grid;grid-template-rows:60px 1fr 68px;gap:8px;padding:8px}
 
   /* ---------- 상단바 ---------- */
   .bar{
     background:var(--panel);border-radius:8px;
-    display:flex;align-items:center;gap:20px;padding:0 16px;
+    display:flex;align-items:center;gap:22px;padding:0 18px;
   }
-  .brand{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--fg-2);letter-spacing:.02em}
+  .brand{display:flex;align-items:center;gap:10px;font-size:15px;color:var(--fg-2);letter-spacing:.02em}
   .brand b{color:var(--fg);font-weight:500}
   .chip{
-    display:inline-flex;align-items:center;gap:7px;height:28px;padding:0 12px;
-    border-radius:6px;font-size:12.5px;font-weight:500;letter-spacing:.02em;
+    display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 14px;
+    border-radius:6px;font-size:14.5px;font-weight:500;letter-spacing:.02em;
     background:rgba(152,160,168,.12);color:var(--fg-2);
   }
   .chip.run{background:rgba(61,220,151,.12);color:var(--ok)}
   .chip.paused{background:rgba(240,180,41,.12);color:var(--warn)}
-  .chip.stopping{background:rgba(224,138,60,.14);color:var(--stopping)}
-  .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+  .chip.stopping{background:rgba(255,143,77,.14);color:var(--stopping)}
+  .dot{width:7px;height:7px;border-radius:50%;background:currentColor}
   .spacer{flex:1}
-  .pills{display:flex;gap:14px;align-items:center}
-  .pill{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--fg-3)}
-  .pill i{width:6px;height:6px;border-radius:50%;background:var(--ok);display:block}
+  .pills{display:flex;gap:16px;align-items:center}
+  .pill{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--fg-3)}
+  .pill i{width:7px;height:7px;border-radius:50%;background:var(--ok);display:block}
   .pill.off i{background:#3a4048}
   .pill.bad i{background:var(--bad)}
-  .clock{font-size:12.5px;color:var(--fg-2);letter-spacing:.04em}
+  .clock{font-size:14.5px;color:var(--fg-2);letter-spacing:.04em}
 
   /* ---------- 메인 ---------- */
-  .main{display:grid;grid-template-columns:1fr 348px;gap:8px;min-height:0}
+  /* [완료 -- 8일차, 사용자 직접 지시] 사이드바(손목캠/처리현황/조작)
+     418px를 추가로 15% 더 확대(481px) -- 웹 클로드 사전승인 없이
+     사용자가 바로 반영을 지시함, 사후에 웹 클로드에 문서로 전달
+     예정(사용자가 직접 요청한 것으로 명시). */
+  .main{display:grid;grid-template-columns:1fr 481px;gap:8px;min-height:0}
 
   .stage{position:relative;background:#000;border-radius:8px;overflow:hidden}
   .stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block;background:#000}
+  .feed{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+  .feed span{font-family:var(--mono);font-size:15px;color:#2c3238;letter-spacing:.3em}
   .stage-msg{
     position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:3;
-    color:var(--fg-3);font-size:13px;background:rgba(20,22,26,.75);
+    color:var(--fg-3);font-size:14px;background:rgba(20,22,26,.75);
     padding:6px 12px;border-radius:8px;text-align:center;white-space:nowrap;
   }
 
   .strip{
-    position:absolute;left:0;right:0;bottom:0;height:34px;z-index:2;
-    background:linear-gradient(transparent,rgba(0,0,0,.72));
-    display:flex;align-items:center;gap:14px;padding:0 14px;
+    position:absolute;left:0;right:0;bottom:0;height:40px;z-index:2;
+    background:linear-gradient(transparent,rgba(0,0,0,.75));
+    display:flex;align-items:center;gap:16px;padding:0 16px;
   }
-  .strip .nm{font-size:12px;color:#c8ced3}
-  .strip .mt{font-size:11px;color:#7b838b;font-family:var(--mono)}
+  .strip .nm{font-size:14px;color:#c8ced3}
+  .strip .mt{font-size:12.5px;color:#7b838b;font-family:var(--mono)}
 
   /* ---------- 사이드바 ---------- */
-  .side{display:grid;grid-template-rows:196px auto 1fr auto;gap:8px;min-height:0}
-  .card{background:var(--panel);border-radius:8px;padding:13px 14px;min-height:0}
-  .hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px}
-  .hd h2{font-size:11px;font-weight:500;color:var(--fg-3);letter-spacing:.09em;text-transform:uppercase}
-  .hd span{font-size:11px;color:var(--fg-3)}
+  .side{display:grid;grid-template-rows:228px auto 1fr auto;gap:8px;min-height:0}
+  .card{background:var(--panel);border-radius:8px;padding:15px 16px;min-height:0}
+  .hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px}
+  .hd h2{font-size:12.5px;font-weight:500;color:var(--fg-3);letter-spacing:.09em;text-transform:uppercase}
+  .hd span{font-size:13px;color:var(--fg-3)}
 
   /* 진행 단계 */
   .pipe{display:flex;align-items:center;gap:0;flex-wrap:wrap}
-  .st{flex:1;text-align:center;font-size:10px;color:var(--fg-3);padding:5px 2px;
+  .st{flex:1;text-align:center;font-size:12px;color:var(--fg-3);padding:6px 2px;
     border-top:2px solid #262b31;white-space:nowrap}
   .st.done{border-top-color:#2f5f4a;color:var(--fg-3)}
   .st.now{border-top-color:var(--ok);color:var(--ok);font-weight:500}
 
   /* 처리 현황 막대 */
-  .row{display:grid;grid-template-columns:58px 1fr 26px;align-items:center;gap:10px;margin-bottom:9px}
+  .row{display:grid;grid-template-columns:68px 1fr 30px;align-items:center;gap:12px;margin-bottom:11px}
   .row:last-child{margin-bottom:0}
-  .row .lb{font-size:12px;color:var(--fg-2);text-align:right}
-  .track{height:6px;background:#22272d;border-radius:3px;overflow:hidden}
-  .fill{height:100%;border-radius:3px;background:var(--ok);transition:width .3s ease}
+  .row .lb{font-size:14px;color:var(--fg-2);text-align:right}
+  .track{height:7px;background:#22272d;border-radius:4px;overflow:hidden}
+  .fill{height:100%;border-radius:4px;background:var(--ok);transition:width .3s ease}
   .fill.handoff{background:var(--info)}
   .fill.review{background:var(--warn)}
-  .row .vl{font-size:13px;font-weight:500;text-align:right}
-  .sep{height:1px;background:var(--line);margin:11px 0}
-  #lastResultText{font-size:11.5px;color:var(--fg-3);line-height:1.5}
+  .row .vl{font-size:15px;font-weight:500;text-align:right}
+  .sep{height:1px;background:var(--line);margin:13px 0}
+  #lastResultText{font-size:13px;color:var(--fg-3);line-height:1.6}
 
   /* 조작 */
-  .ops{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-  .op{height:32px;border:1px solid var(--line-2);background:transparent;border-radius:6px;
-    color:var(--fg-2);font-size:12px;font-family:inherit}
+  .ops{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+  .op{height:38px;border:1px solid var(--line-2);background:transparent;border-radius:6px;
+    color:var(--fg-2);font-size:14px;font-family:inherit}
   .op:hover{background:var(--panel-2);color:var(--fg)}
   .op:active{filter:brightness(1.3)}
   .estop-btn{
-    height:56px;border:0;border-radius:8px;background:#c33b3b;color:#fff;
-    font-size:15px;font-weight:500;font-family:inherit;letter-spacing:.03em;
-    display:flex;align-items:center;justify-content:center;gap:9px;width:100%;
+    height:64px;border:0;border-radius:8px;background:#c33b3b;color:#fff;
+    font-size:17px;font-weight:500;font-family:inherit;letter-spacing:.03em;
+    display:flex;align-items:center;justify-content:center;gap:10px;width:100%;
     box-shadow:0 2px 10px rgba(0,0,0,.4);
   }
   .estop-btn:hover{background:#d44444}
-  .estop-btn small{display:block;font-size:10.5px;font-weight:400;opacity:.75;letter-spacing:0}
+  .estop-btn small{display:block;font-size:12px;font-weight:400;opacity:.75;letter-spacing:0}
 
   /* ---------- 하단 알림 레일 ---------- */
   .rail{background:var(--panel);border-radius:8px;display:flex;align-items:center;
-    gap:0;padding:0 16px;overflow-x:auto;overflow-y:hidden}
-  .al{display:flex;align-items:center;gap:11px;padding-right:26px;margin-right:26px;
+    gap:0;padding:0 18px;overflow-x:auto;overflow-y:hidden}
+  .al{display:flex;align-items:center;gap:12px;padding-right:24px;margin-right:24px;
     border-right:1px solid var(--line);white-space:nowrap;transition:opacity .4s ease;flex-shrink:0}
   .al:last-child{border:0;margin-right:0;padding-right:0}
-  .al time{font-size:11px;color:var(--fg-3);font-family:var(--mono)}
-  .al p{font-size:12.5px;color:var(--fg-2)}
+  .al time{font-size:12.5px;color:var(--fg-3);font-family:var(--mono)}
+  .al p{font-size:14.5px;color:var(--fg-2)}
   .al.w p{color:var(--warn)}
   .al.e p{color:var(--bad)}
-  .al i{width:5px;height:5px;border-radius:50%;background:#3a4048;display:block;flex-shrink:0}
+  .al i{width:6px;height:6px;border-radius:50%;background:#3a4048;display:block;flex-shrink:0}
   .al.w i{background:var(--warn)}
   .al.e i{background:var(--bad)}
 
@@ -151,7 +163,7 @@
   #estopBanner{
     position:fixed;top:0;left:0;right:0;z-index:60;
     background:var(--bad);color:#fff;text-align:center;
-    padding:10px;font-weight:600;font-size:15px;
+    padding:11px;font-weight:600;font-size:17px;
   }
 </style>
 </head>
@@ -164,7 +176,7 @@
   <header class="bar">
     <div class="brand"><b>재활용 분류 로봇</b><span>관제</span></div>
     <div id="stateChip" class="chip"><span class="dot"></span><span id="stateChipText">연결 중...</span></div>
-    <span id="elapsedText" class="num" style="font-size:12.5px;color:var(--fg-3)"></span>
+    <span id="elapsedText" class="num" style="font-size:14.5px;color:var(--fg-3)"></span>
     <div class="spacer"></div>
     <div class="pills" id="healthPills"></div>
     <span class="clock mono" id="clockText">--:--:--</span>
@@ -218,7 +230,7 @@
           <button class="op" id="btnResume">재개</button>
           <button class="op" id="btnStop">종료</button>
         </div>
-        <div style="height:9px"></div>
+        <div style="height:11px"></div>
         <button class="estop-btn" id="estopMain">
           <span>■</span>
           <span>비상정지<small>위급 시 물리 버튼</small></span>
@@ -248,26 +260,28 @@
   const VIDEO_PORT = qs.get("video_port") || "8080";
   // [정정 -- 8일차, 관제PC] 기본값을 원본 영상(`/image_raw`)에서 **검출
   // 오버레이가 그려진 영상**(`/recycle_detection/image`, Docker YOLO가
-  // 발행)으로 바꿨다. v64 원안이 고정 카메라 패널을 "C270 + 검출
-  // 오버레이"로 정의했는데 구현이 원본 영상만 띄우고 있었다 -- 그러면
-  // 그 패널을 둔 이유(검출 결과 확인) 자체가 사라진다는 사용자 지적.
-  // 원본 영상을 봐야 하면 `?video_topic=/image_raw`로 전환하면 된다.
+  // 발행)으로 바꿨다. 원본 영상을 봐야 하면 `?video_topic=/image_raw`.
   const VIDEO_TOPIC = qs.get("video_topic") || "/recycle_detection/image";
   // [완료 -- 8일차] 손목 카메라(RealSense). v64 원안의 손목캠 패널.
   const WRIST_TOPIC = qs.get("wrist_topic") || "/camera/camera/color/image_raw";
-  // [완료 -- 8일차] 전송량 절감. 관제PC 실측 11.6배 감소 확인
-  // (원본 208437B -> 640x360/quality50 17954B). 쿼리로 덮어쓸 수 있다.
+  // [완료 -- 8일차] 전송량 절감. 관제PC 실측 11.6배 감소 확인.
   const VIDEO_W = qs.get("video_width") || "640";
   const VIDEO_H = qs.get("video_height") || "360";
   const VIDEO_Q = qs.get("video_quality") || "50";
+  // [신규 -- 8일차, v107 회신] 데모 모드 -- 로봇/카메라 없이 화면
+  // 검토용. **기본값은 꺼짐(안전 쪽), `?demo=1`일 때만 켜진다** --
+  // 코드 상단 상수(예: `const DEMO = true`)로 만들면 끄는 걸 잊고
+  // git에 커밋될 위험이 있어 웹 클로드가 명시적으로 반대한 방식이다
+  // (2-3절). 실제 렌더 함수(render/pushAlert)를 그대로 재사용해
+  // 데모 화면이 실제 화면의 정확한 예고가 되도록 한다(2-5절) --
+  // 데모 전용 DOM은 하드코딩하지 않는다.
+  const DEMO_MODE = qs.get("demo") === "1";
 
   // [버그 발견·수정 -- 8일차, 관제PC 실측] `encodeURIComponent(topic)`을
   // 그대로 썼더니 "/"가 "%2F"로 인코딩되는데, web_video_server가 그걸
   // 디코딩하지 않고 그런 이름의 토픽을 못 찾아 응답 본문 없이 연결을
   // 끊어버렸다(`net::ERR_EMPTY_RESPONSE`) -- ROS 토픽명은
-  // `[A-Za-z0-9_/]`만 쓰므로 "/"는 인코딩할 필요가 없다(쿼리 문자열
-  // 구조를 깨는 문자가 아님) -- 완전히 인코딩을 빼는 대신, 실제로
-  // 쿼리 구조를 깰 수 있는 문자만 골라서 이스케이프한다.
+  // `[A-Za-z0-9_/]`만 쓰므로 "/"는 인코딩할 필요가 없다.
   function encodeTopicForQuery(topic) {
     return topic.replace(/[&=#% ]/g, (c) => encodeURIComponent(c));
   }
@@ -296,6 +310,25 @@
 
   const STATE_LABEL = { IDLE: "대기 중", RUNNING: "작업 중", PAUSED: "일시정지", STOPPING: "종료 중" };
   const STATE_CHIP_CLASS = { IDLE: "", RUNNING: "run", PAUSED: "paused", STOPPING: "stopping" };
+
+  // [신규 -- 8일차, v107 2-4절] 데모 값 -- 시안 그대로. 일부러
+  // 섞은 값: 플라스틱 0(막대 0일 때 확인), TTS off(연결점 off
+  // 상태 확인), 오류/경고 각 1건(세 색이 한 화면에 나오는지 확인).
+  const DEMO_PAYLOAD = {
+    state: "RUNNING",
+    stage: "pick",
+    counts: { plastic_bin: 0, can_bin: 3, paper_bin: 2, battery_bin: 1, human_handoff: 2, review_bin: 3 },
+    total: 11,
+    last: { item: "can", dest: "can_bin", weight_g: 16 },
+    health: { camera: true, robot: true, conveyor: true, stt: true, tts: false },
+  };
+  const DEMO_ALERTS = [
+    { level: "error", msg: "파지 실패 · 재시도 1/2" },
+    { level: "warn", msg: "예측 좌표 도달 범위 초과 · 건너뜀" },
+    { level: "info", msg: "battery 확정 · 9/9 프레임" },
+    { level: "info", msg: "can 파지 성공 · x 316 mm" },
+    { level: "info", msg: "컨베이어 정지 · 배치 중" },
+  ];
 
   // ---------------------------------------------------------------
   // DOM refs
@@ -332,20 +365,14 @@
 
   // ---------------------------------------------------------------
   // 비디오 스트림 (web_video_server, rosbridge와 무관한 별도 HTTP)
-  //
-  // [버그 발견·수정 -- 8일차, v71/v72 실측] `<img>`(MJPEG multipart
-  // 미지원) -> `<iframe>`(렌더링 불안정) 두 단계를 거쳐 최종적으로
-  // **snapshot 폴링 + canvas**로 전환했다. `web_video_server`의
-  // `/snapshot?topic=...&type=jpeg`는 평범한 단일 JPEG 응답이라
-  // multipart 관련 문제가 원천적으로 없다.
+  // [버그 발견·수정 -- 8일차, v71/v72 실측] snapshot 폴링 + canvas로
+  // 최종 전환 -- multipart 문제가 원천적으로 없다.
   // ---------------------------------------------------------------
   const VIDEO_POLL_MS = 100; // 10fps -- UI 표시용이므로 충분(v72 3-3(d))
 
-  // [완료 -- 8일차] 패널 2개를 하나의 목록으로 다룬다. 아래 폴링이
-  // 이 배열을 **번갈아** 돌면서 한 번에 하나씩만 요청한다.
   const PANES = [
-    { canvas: videoCanvas, ctx: videoCanvas.getContext("2d"), topic: VIDEO_TOPIC },
-    { canvas: wristCanvas, ctx: wristCanvas.getContext("2d"), topic: WRIST_TOPIC },
+    { canvas: videoCanvas, ctx: videoCanvas.getContext("2d"), topic: VIDEO_TOPIC, label: "FIXED CAM" },
+    { canvas: wristCanvas, ctx: wristCanvas.getContext("2d"), topic: WRIST_TOPIC, label: "WRIST CAM" },
   ];
 
   function resizeVideoCanvas() {
@@ -357,29 +384,42 @@
   window.addEventListener("resize", resizeVideoCanvas);
   resizeVideoCanvas();
 
-  // [버그 발견·수정 -- 8일차, v72 구현 중 실측] `setInterval`로
-  // 고정 주기마다 새 Image()를 만들면, 이전 요청이 아직 안 끝난
-  // 채로 다음 요청이 겹쳐 나간다 -- 겹친 동시 요청에서만
+  // [신규 -- 8일차, v107 2-5절] 데모 모드에서는 실제 카메라가 없을
+  // 수 있으므로 폴링 대신 자리표시만 한 번 그린다(시안 `.feed`
+  // 스타일 그대로 -- 모노스페이스, 옅은 회색, 자간 넓게).
+  function drawPanePlaceholder(pane) {
+    const cw = pane.canvas.width, ch = pane.canvas.height;
+    if (cw <= 0 || ch <= 0) return;
+    pane.ctx.fillStyle = "#000";
+    pane.ctx.fillRect(0, 0, cw, ch);
+    pane.ctx.strokeStyle = "rgba(255,255,255,.07)";
+    pane.ctx.lineWidth = 1;
+    for (let x = 0; x < cw; x += 48) { pane.ctx.beginPath(); pane.ctx.moveTo(x, 0); pane.ctx.lineTo(x, ch); pane.ctx.stroke(); }
+    for (let y = 0; y < ch; y += 48) { pane.ctx.beginPath(); pane.ctx.moveTo(0, y); pane.ctx.lineTo(cw, y); pane.ctx.stroke(); }
+    pane.ctx.fillStyle = "#2c3238";
+    pane.ctx.font = "15px " + getComputedStyle(document.documentElement).getPropertyValue("--mono");
+    pane.ctx.textAlign = "center";
+    pane.ctx.textBaseline = "middle";
+    pane.ctx.fillText(pane.label, cw / 2, ch / 2);
+  }
+
+  // [버그 발견·수정 -- 8일차, v72 구현 중 실측] 겹친 동시 요청에서만
   // `web_video_server` 응답이 `net::ERR_EMPTY_RESPONSE`로 실패했다.
-  // **수정**: 이전 요청이 완전히 끝난(성공/실패 무관) 뒤에만 다음
-  // 요청을 예약하는 자기재귀 `setTimeout` 방식 -- 동시 최대 1개 요청.
-  // [중요 -- 패널 2개] 패널마다 독립 폴링 루프를 돌리면 동시 요청이
-  // 2개가 되어 같은 실패가 재현될 위험이 있다 -- 하나의 체인이
-  // PANES를 번갈아 요청한다(각 패널 갱신주기는 절반, 약 5fps).
-  //
-  // [수정 -- v104, 웹 클로드 요청 5-2절] 기존엔 "contain" 방식으로
-  // 그려 레터박스(검은 여백)가 생겼다 -- 시안은 패널을 꽉 채우는
-  // "cover"를 요구한다(scale 공식을 min -> max로 변경, 넘치는
-  // 부분은 canvas 밖이라 자동으로 잘림). [전제, 미검증] 벨트가
-  // 화면 중앙에 있다는 가정하에 잘려도 문제없을 것으로 보이나,
-  // 실물에서 확인 필요 -- 도달 한계선 등 가장자리 정보가 잘리면
-  // 좌표 보정이 필요하다(웹 클로드 문서 5-4절).
+  // **수정**: 자기재귀 `setTimeout` -- 동시 최대 1개 요청.
+  // [중요 -- 패널 2개] 하나의 체인이 PANES를 번갈아 요청한다(각
+  // 패널 갱신주기는 절반, 약 5fps).
+  // [수정 -- v104, 웹 클로드 요청 5-2절] "contain"(레터박스) ->
+  // "cover"(꽉 채움, 넘치는 부분은 잘림)로 변경. **[실측 -- v106,
+  // 관제PC 헤드리스] 1600x900 기준 좌우 각 4.6% 잘림, 상하 0%**
+  // -- 벨트는 화면을 가로지르는 구도라 남지만 양 끝(투입 시작점/
+  // 끝단)이 잘릴 가능성은 실물 확인 중.
   let paneIdx = 0;
   function scheduleNextPoll() {
     paneIdx = (paneIdx + 1) % PANES.length;
     setTimeout(pollSnapshot, VIDEO_POLL_MS);
   }
   function pollSnapshot() {
+    if (DEMO_MODE) { return; } // 데모 모드는 아래에서 한 번만 그리고 폴링 안 함
     const pane = PANES[paneIdx];
     const img = new Image();
     img.onload = () => {
@@ -399,34 +439,44 @@
     img.src = `http://${VIDEO_HOST}:${VIDEO_PORT}/snapshot?topic=${encodeTopicForQuery(pane.topic)}`
       + `&type=jpeg&width=${VIDEO_W}&height=${VIDEO_H}&quality=${VIDEO_Q}&t=${Date.now()}`;
   }
-  pollSnapshot();
+  if (DEMO_MODE) {
+    for (const p of PANES) drawPanePlaceholder(p);
+  } else {
+    pollSnapshot();
+  }
 
   // ---------------------------------------------------------------
-  // rosbridge 연결
+  // rosbridge 연결 -- [수정 -- 8일차, v107 2-2/2-5절] 데모 모드에서는
+  // 아예 연결을 시도하지 않는다. 데모는 "화면 검토용"이라 실제
+  // 로봇에 연결된 채로 켜졌을 때 조작 버튼이 진짜 명령을 내보내면
+  // 안 되므로(시연 중 실수로 데모 URL을 열었다가 비상정지/시작이
+  // 실제로 나가면 안전 문제다) -- ros 객체 자체를 안 만들어 원천
+  // 차단한다.
   // ---------------------------------------------------------------
-  const ros = new ROSLIB.Ros({ url: `ws://${ROSBRIDGE_HOST}:${ROSBRIDGE_PORT}` });
-  ros.on("connection", () => { stateChipText.textContent = "연결됨"; });
-  ros.on("error", () => { stateChipText.textContent = "rosbridge 연결 오류"; });
-  ros.on("close", () => { stateChipText.textContent = "rosbridge 연결 끊김"; });
+  const ros = DEMO_MODE ? null : new ROSLIB.Ros({ url: `ws://${ROSBRIDGE_HOST}:${ROSBRIDGE_PORT}` });
+  if (ros) {
+    ros.on("connection", () => { stateChipText.textContent = "연결됨"; });
+    ros.on("error", () => { stateChipText.textContent = "rosbridge 연결 오류"; });
+    ros.on("close", () => { stateChipText.textContent = "rosbridge 연결 끊김"; });
+  }
 
-  const uiStateTopic = new ROSLIB.Topic({ ros, name: "/ui/state", messageType: "std_msgs/msg/String" });
-  const uiAlertTopic = new ROSLIB.Topic({ ros, name: "/ui/alert", messageType: "std_msgs/msg/String" });
+  const uiStateTopic = ros && new ROSLIB.Topic({ ros, name: "/ui/state", messageType: "std_msgs/msg/String" });
+  const uiAlertTopic = ros && new ROSLIB.Topic({ ros, name: "/ui/alert", messageType: "std_msgs/msg/String" });
 
   // [완료 -- 8일차, v74 회신] 조작 버튼 -- 음성이 안 먹힐 때 대비용
-  // 안전망. 새 인터페이스를 만들지 않고 팀원 STT/TTS와 tracking_node
-  // 가 이미 쓰는 `/voice_command`(std_msgs/String, 대문자 값)에
-  // 그대로 발행한다.
-  const voiceCommandTopic = new ROSLIB.Topic({
+  // 안전망. `/voice_command`(std_msgs/String, 대문자 값)에 발행.
+  const voiceCommandTopic = ros && new ROSLIB.Topic({
     ros, name: "/voice_command", messageType: "std_msgs/msg/String",
   });
   function sendVoiceCommand(cmd) {
+    if (DEMO_MODE) { console.log("[DEMO] sendVoiceCommand (무시됨):", cmd); return; }
     voiceCommandTopic.publish(new ROSLIB.Message({ data: cmd }));
   }
 
-  const conveyorStopSrv = new ROSLIB.Service({ ros, name: "/conveyor/stop", serviceType: "std_srvs/srv/Trigger" });
+  const conveyorStopSrv = ros && new ROSLIB.Service({ ros, name: "/conveyor/stop", serviceType: "std_srvs/srv/Trigger" });
   // [전제, 확인 필요 -- v68 응답 참고] 실제 서비스 이름은 로봇
   // 스택 기동 시(dsr01 네임스페이스) 확인 필요.
-  const moveStopSrv = new ROSLIB.Service({
+  const moveStopSrv = ros && new ROSLIB.Service({
     ros, name: "/dsr01/dsr_controller2/motion/move_stop", serviceType: "dsr_msgs2/srv/MoveStop",
   });
 
@@ -453,19 +503,23 @@
 
     render(payload);
   }
-  uiStateTopic.subscribe(onUiState);
+  if (uiStateTopic) uiStateTopic.subscribe(onUiState);
 
-  uiAlertTopic.subscribe((msg) => {
-    let payload;
-    try { payload = JSON.parse(msg.data); } catch (e) { return; }
-    console.warn("[UI ALERT]", payload.level, payload.msg);
-    pushAlert(payload);
-  });
+  if (uiAlertTopic) {
+    uiAlertTopic.subscribe((msg) => {
+      let payload;
+      try { payload = JSON.parse(msg.data); } catch (e) { return; }
+      console.warn("[UI ALERT]", payload.level, payload.msg);
+      pushAlert(payload);
+    });
+  }
 
   // [완료 -- 8일차, v69 4절 / v104 재배치] 알림 -- /ui/alert를 직접
-  // 구독해 채운다. 최근 4개만 유지, 10초 후 서서히 사라짐. **[수정
-  // -- v104 4절 필드매핑] level별 3색 구분(error 빨강/warn 노랑/
-  // info 회색)을 새로 반영** -- 기존엔 error/기본 2단만 구분했다.
+  // 구독해 채운다. **[수정 -- v107 1-4절] 최근 5개 유지**(레일이
+  // 넓어져 하나 더 들어감, 기존 4개 -- 실물에서 잘리면 4로 되돌릴
+  // 것). 10초 후 서서히 사라짐. level별 3색 구분(error 빨강/warn
+  // 노랑/info 회색).
+  const ALERT_KEEP = 5;
   function pushAlert(payload) {
     const item = document.createElement("div");
     const level = payload.level === "error" ? "e" : payload.level === "warn" ? "w" : "";
@@ -475,19 +529,22 @@
     const timeStr = `${pad(t.getHours())}:${pad(t.getMinutes())}:${pad(t.getSeconds())}`;
     item.innerHTML = `<i></i><time>${timeStr}</time><p>${payload.msg || ""}</p>`;
     alertRail.prepend(item);
-    while (alertRail.children.length > 4) {
+    while (alertRail.children.length > ALERT_KEEP) {
       alertRail.removeChild(alertRail.lastChild);
     }
-    setTimeout(() => {
-      item.style.opacity = "0";
-      setTimeout(() => item.remove(), 400);
-    }, 10000);
+    if (!DEMO_MODE) {
+      setTimeout(() => {
+        item.style.opacity = "0";
+        setTimeout(() => item.remove(), 400);
+      }, 10000);
+    }
   }
 
   // [통합 -- v104] 기존 renderMain(메인 화면)/renderDetail(상세
-  // 페이지)를 하나로 합쳤다 -- 상세 페이지를 없애고(3절 결정, 아래
-  // "화면 전환" 항목 참고) 그 내용을 사이드바에 상시 표시하므로
-  // 화면이 하나뿐이라 분리할 이유가 없다.
+  // 페이지)를 하나로 합쳤다 -- 상세 페이지를 없애고(3절 결정) 그
+  // 내용을 사이드바에 상시 표시하므로 화면이 하나뿐이라 분리할
+  // 이유가 없다. [재사용 -- v107 2-5절] 데모 모드도 이 함수를
+  // 그대로 호출한다(별도 렌더 경로 없음).
   function render(payload) {
     const state = payload.state || "IDLE";
     stateChipText.textContent = STATE_LABEL[state] || state;
@@ -547,9 +604,7 @@
     }
   }
 
-  // [수정 -- v104 4절 필드매핑] done/now/미도달 3단계 표시로 개선
-  // -- 기존엔 현재 단계만 강조(active)하고 나머지는 전부 동일하게
-  // 흐렸다. 지금 단계 이전은 "완료"로, 이후는 기본(미도달)으로 구분.
+  // [수정 -- v104 4절 필드매핑] done/now/미도달 3단계 표시로 개선.
   function renderStage(stage) {
     stageFlow.innerHTML = "";
     const curIdx = STAGE_ORDER.indexOf(stage);
@@ -586,15 +641,17 @@
   // 경과 시간 / 갱신 정지 표시 -- 0.5초마다 로컬 시계로 계산.
   // 블로킹 구간(v65 2-2절)에는 서버가 새 메시지를 못 보내므로,
   // 이 타이머가 "얼마나 멈춰 있는지"를 클라이언트에서 직접 잰다.
+  // 데모 모드에서도 그대로 돌아 "파지 · N초 경과"가 실제로 째깍
+  // 인다(busySinceWallClock을 데모 시작 시 12초 전으로 맞춰둠).
   // ---------------------------------------------------------------
   setInterval(() => {
     const staleSec = (Date.now() - lastMsgWallClock) / 1000;
     if (busySinceWallClock !== null) {
       const busySec = Math.round((Date.now() - busySinceWallClock) / 1000);
       elapsedText.textContent = `${STAGE_LABEL[lastStage] || lastStage} · ${busySec}초 경과`;
-    } else if (staleSec > 3) {
+    } else if (!DEMO_MODE && staleSec > 3) {
       elapsedText.textContent = `갱신 없음 · ${Math.round(staleSec)}초`;
-    } else {
+    } else if (!DEMO_MODE) {
       elapsedText.textContent = "";
     }
   }, 500);
@@ -603,17 +660,20 @@
   // [제거 -- v104 3절 결정] 상세 페이지를 없앴다. 처리 현황·진행
   // 단계·연결 상태가 전부 사이드바/상단바에 상시 표시되므로 같은
   // 내용을 다시 보여주는 별도 화면이 불필요해졌다(중복) -- 화면
-  // 전환·30초 자동복귀 로직도 함께 제거. 팀이 상세 페이지를 별도
-  // 목적(세션 이력 등 확장 정보)으로 원하면 그때 다시 추가한다.
+  // 전환·30초 자동복귀 로직도 함께 제거.
   // ---------------------------------------------------------------
 
   // ---------------------------------------------------------------
   // 비상정지 (v67 응답/v68 참고) -- 컨베이어는 확실히 즉시 정지,
   // 로봇은 "전달만" 되고 즉시 정지는 미확인이라고 배너에 명시한다.
+  // [수정 -- 8일차, v107 2-2절] 데모 모드에서는 배너만 보여주고
+  // 실제 서비스 호출은 하지 않는다(ros가 null이라 애초에 불가).
   // ---------------------------------------------------------------
   function triggerEstop() {
     estopBanner.classList.remove("hidden");
     setTimeout(() => estopBanner.classList.add("hidden"), 6000);
+
+    if (DEMO_MODE) { console.log("[DEMO] triggerEstop (실제 호출 없음)"); return; }
 
     conveyorStopSrv.callService(new ROSLIB.ServiceRequest({}), (res) => {
       console.log("[ESTOP] conveyor/stop ->", res);
@@ -633,6 +693,20 @@
   el("btnPause").addEventListener("click", () => sendVoiceCommand("PAUSE"));
   el("btnResume").addEventListener("click", () => sendVoiceCommand("RESUME"));
   el("btnStop").addEventListener("click", () => sendVoiceCommand("STOP"));
+
+  // ---------------------------------------------------------------
+  // [신규 -- 8일차, v107 2절] 데모 모드 초기 렌더 -- 실제 render()/
+  // pushAlert()를 그대로 호출한다(2-5절 요청 그대로, 새 DOM 하드
+  // 코딩 없음). 경과시간이 "파지 · 12초"로 보이도록 시작 기준을
+  // 12초 전으로 맞춘 뒤 자연스럽게 계속 째깍이게 둔다.
+  // ---------------------------------------------------------------
+  if (DEMO_MODE) {
+    document.title = "[데모] " + document.title;
+    lastStage = DEMO_PAYLOAD.stage;
+    busySinceWallClock = Date.now() - 12000;
+    render(DEMO_PAYLOAD);
+    for (const a of DEMO_ALERTS) pushAlert(a);
+  }
 
 })();
 </script>
