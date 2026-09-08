@@ -248,7 +248,16 @@
   const ROSBRIDGE_PORT = qs.get("rosbridge_port") || "9090";
   const VIDEO_HOST = qs.get("video_host") || location.hostname;
   const VIDEO_PORT = qs.get("video_port") || "8080";
-  const VIDEO_TOPIC = qs.get("video_topic") || "/image_raw";
+  // [정정 -- 8일차, 관제PC] 기본값을 원본 영상(`/image_raw`)에서 **검출
+  // 오버레이가 그려진 영상**(`/recycle_detection/image`, Docker YOLO가
+  // 발행)으로 바꿨다. v64 원안이 고정 카메라 패널을 "C270 + 검출
+  // 오버레이"로 정의했는데 구현이 원본 영상만 띄우고 있었다 -- 그러면
+  // 그 패널을 둔 이유(검출 결과 확인) 자체가 사라진다는 사용자 지적.
+  // 원본 영상을 봐야 하면 `?video_topic=/image_raw`로 전환하면 된다.
+  // 추적 상태(확정까지 남은 프레임 등)까지 보여주는 클라이언트측
+  // bbox 드로잉(`/ui/detections` 기반, v66 3-1절)은 별건으로 남는다 --
+  // 서버가 그려주는 이 화면 위에 나중에 얹으면 되므로 배타적이지 않다.
+  const VIDEO_TOPIC = qs.get("video_topic") || "/recycle_detection/image";
 
   // [버그 발견·수정 -- 8일차, 관제PC 실측] `encodeURIComponent(topic)`을
   // 그대로 썼더니 "/"가 "%2F"로 인코딩되는데, web_video_server가 그걸
