@@ -58,6 +58,7 @@ Status (6일차): plane-intersection math + belt_correction 전부 구현·검�
 
 from __future__ import annotations
 
+import json
 import time
 
 import numpy as np
@@ -65,6 +66,7 @@ import rclpy
 from cv_bridge import CvBridge
 from rclpy.executors import SingleThreadedExecutor
 from rclpy.node import Node
+from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import Image
 from std_msgs.msg import String
 from std_srvs.srv import Trigger
@@ -137,6 +139,7 @@ class TrackingNode(Node):
         self._motion_timing = load_motion_timing()
         self._gripper_profiles = load_gripper_profiles()
         self._item_routing = load_item_routing()  # 상태머신 골격 (6일차)
+        self._reach_limit_px = self._compute_reach_limit_px()
 
         # YOLO12s 검출 연동 (v47) -- config/vision.yaml에서 conf 등 로드.
         vision_cfg = load_vision_config()
@@ -217,6 +220,36 @@ class TrackingNode(Node):
         self.declare_parameter("voice.initial_state", "IDLE")
         self._voice_state = self.get_parameter("voice.initial_state").value
         self._pick_counts: dict[str, int] = {}
+        # [완료 — 8일차, v67 회신] `_pick_counts`(품목명 키, 음성
+        # 상태보고 "캔 3개, 종이 2개"용)와 별개로 **실제 목적지
+        # 키(통 이름 또는 "human_handoff")**로 집계하는 딕셔너리를
+        # 하나 더 둔다 -- UI 막대그래프는 "어느 통에 몇 개"가 필요한데,
+        # `item_routing.yaml`을 보면 pet_unlabeled/pet_labeled처럼
+        # 서로 다른 품목이 같은 통(plastic_bin)에 몰리거나 아예 통이
+        # 아닌 곳(human_handoff)으로 가는 경우가 있어 품목명 키로는
+        # 안 맞는다.
+        self._bin_counts: dict[str, int] = {}
+
+        # [완료 — 8일차, v64 회신] 관제 UI용 상태 발행. `stage`는
+        # idle/detect/track/predict/pick/measure/place/handoff 중 하나
+        # (v64 원안엔 handoff가 없었으나 실제 코드엔 사람전달 경로가
+        # 있어 추가함 -- 웹 클로드 확인 필요, 요청2 참고). **[중요,
+        # 정직하게 밝힐 것] `_execute_pick`/`_place_item`/`_handoff_item`
+        # 은 전부 `_on_image` 콜백 안에서 블로킹 호출된다(단일 스레드
+        # executor) -- 그 ~17~24초 구간 동안은 이 타이머 콜백 자체가
+        # 실행될 기회가 없다. 즉 "pick"/"measure"/"place"/"handoff"
+        # 단계는 UI에 실시간으로는 절대 보이지 않고, 블로킹이 끝나는
+        # 순간 한꺼번에 다음 상태로 점프한다 -- `ts` 필드로 클라이언트가
+        # staleness를 스스로 판단해야 한다(진짜 해결은 파지 실행을
+        # 별도 스레드/executor로 분리해야 하는데, 그건 오늘 범위 밖의
+        # 아키텍처 변경). 상세 설명은 응답문서 참고.
+        self._stage = "idle"
+        self._last_result: dict | None = None
+        self._last_image_time: float | None = None
+        self._ui_state_pub = self.create_publisher(String, "/ui/state", 10)
+        self._ui_alert_pub = self.create_publisher(String, "/ui/alert", 10)
+        self._ui_detections_pub = self.create_publisher(String, "/ui/detections", 10)
+        self.create_timer(0.5, self._publish_ui_state)
 
         # 로봇 실행 -- dry_run=False일 때만 생성. [버그 발견·수정 —
         # 6일차] 처음엔 self(=TrackingNode)에 클라이언트를 만들고
@@ -290,7 +323,19 @@ class TrackingNode(Node):
                 if not c.wait_for_service(timeout_sec=5.0):
                     raise RuntimeError(f"service {name} not available -- 로봇 스택 확인")
 
-        self.create_subscription(Image, "/image_raw", self._on_image, 10)
+        # [완료 -- 8일차, v72 회신] `create_subscription(..., 10)`은
+        # depth=10/RELIABLE(기본값)이라 CPU 추론이 입력 속도를 못
+        # 따라가면(실측: 30Hz 입력 vs CPU 추론 약 1fps) 큐에 최대
+        # 10프레임이 도착 순서대로 쌓이고 오래된 프레임부터 처리하게
+        # 된다 -- 시간이 지날수록 점점 과거 프레임을 처리하는 구조적
+        # 지연(v45에서 겪은 "인식 지연"과 같은 유형)으로 이어질 수
+        # 있다는 지적을 받고 확인. `qos_profile_sensor_data`
+        # (BEST_EFFORT + KEEP_LAST depth=5, ROS2에서 카메라류 토픽에
+        # 쓰는 표준 프로파일)로 교체 -- 큐가 차면 오래된 프레임이
+        # 자동으로 버려지고 항상 최신에 가까운 프레임을 처리한다.
+        self.create_subscription(
+            Image, "/image_raw", self._on_image, qos_profile_sensor_data
+        )
         # [완료 — 6일차, v55/v56 회신] voice_bridge_node와 별개로 이
         # 토픽을 직접 구독한다 -- 실제 상태 전이·컨베이어 제어·처리
         # 개수 집계는 여기(로봇/컨베이어를 이미 제어하고 있는 노드)
@@ -305,10 +350,17 @@ class TrackingNode(Node):
         )
 
     def _load_cam_to_base(self) -> np.ndarray | None:
+        """[완료 — 6일차, v61 회신 반영] 절대경로 대신 패키지 상대
+        경로도 허용 -- 기존엔 `config/tracking.yaml`에 특정 사용자의
+        홈 디렉터리가 박힌 절대경로(`/home/rokey/...`)가 들어있어서
+        다른 계정/경로(예: 관제 PC)로 옮기면 그대로 깨졌다.
+        `resolve_model_path`(YOLO 모델 경로에 이미 쓰던 것)를 그대로
+        재사용 -- 상대경로면 패키지 루트 기준으로 풀고, 절대경로면
+        그대로 쓴다(기존 설정과 호환)."""
         path = self.get_parameter("camera.cam_to_base_path").value
         if not path:
             return None
-        return np.load(path)
+        return np.load(resolve_model_path(path))
 
     def _load_belt_plane(self) -> Plane | None:
         a, b, c, d = self.get_parameter("belt_plane.abcd").value
@@ -318,6 +370,32 @@ class TrackingNode(Node):
 
     def _is_calibrated(self) -> bool:
         return self._cam_to_base is not None and self._belt_plane is not None
+
+    def _compute_reach_limit_px(self) -> float | None:
+        """[완료 — 8일차, v66 3-3절] `max_reachable_x`(로봇 좌표, 590mm)
+        에 해당하는 화면 x픽셀을 기동 시 1회 계산 -- 카메라·벨트가
+        고정이라 매 프레임 다시 계산할 필요 없음. `belt_correction`
+        (forward 방향의 경험적 XY 보정)의 역변환은 코드베이스에
+        없어 적용하지 않았다 -- **[전제, 미검증]** 그 보정값 자체가
+        RMS 4.5mm/최대 8.6mm로 작아 화면 픽셀 단위 오차는 미미할
+        것으로 판단했다(실측 검증 안 함). 캘리브레이션 미완료거나
+        `max_reachable_x` 설정이 없으면 `None` 반환."""
+        if self._cam_to_base is None or self._belt_plane is None:
+            return None
+        max_x = self._motion_timing.get("max_reachable_x")
+        if max_x is None:
+            return None
+        p = self._belt_plane
+        if abs(p.c) < 1e-9:
+            return None
+        y = self._motion_timing["belt_hover_y"]
+        z = -(p.a * max_x + p.b * y + p.d) / p.c
+        R = self._cam_to_base[:3, :3]
+        origin = self._cam_to_base[:3, 3]
+        cam_pt = R.T @ (np.array([max_x, y, z]) - origin)
+        if cam_pt[2] <= 0:
+            return None
+        return float(self._intrinsics.fx * cam_pt[0] / cam_pt[2] + self._intrinsics.cx)
 
     def pixel_to_base(self, u: float, v: float) -> np.ndarray:
         """Public entry point used by _on_detection (and by 작업 E test scripts).
@@ -410,6 +488,60 @@ class TrackingNode(Node):
         msg.data = text
         self._voice_tts_pub.publish(msg)
 
+    def _publish_ui_alert(self, level: str, msg: str) -> None:
+        """[완료 — 8일차, v64 회신] 이벤트성 알림 발행 -- 도달 불가,
+        배치 실패, 무게 초과 라우팅 등 운영자가 놓치면 안 되는
+        순간에만 호출한다(주기 발행 아님, `/ui/state`와 역할 분리)."""
+        payload = {"ts": time.time(), "level": level, "msg": msg}
+        out = String()
+        out.data = json.dumps(payload, ensure_ascii=False)
+        self._ui_alert_pub.publish(out)
+
+    def _publish_ui_state(self) -> None:
+        """[완료 — 8일차, v64/v66 회신] 0.5초 주기(2Hz) 상태 스냅샷 발행.
+
+        **[정정 — v66 2절] `passed`(원안: 미검출로 벨트를 그냥
+        통과한 개수) 필드는 뺐다.** YOLO 검출 기반 파이프라인에는
+        "무언가 벨트를 지나갔다"를 클래스 무관하게 감지할 방법이
+        없다(안 잡히면 애초에 아무 이벤트도 안 생김 -- 이 카운터
+        자체가 구조적으로 셀 수 없음). v66 2-3절의 폴백 지침
+        ("세기 어려우면 필드를 빼고 알려줄 것")을 그대로 따름 --
+        클래스 무관 일반 물체 감지(예: 모션/블롭 기반)를 새로 붙이면
+        가능하지만 데모 임박 시점에 들일 작업은 아니라고 판단.
+        `health.robot`은 dry_run 중엔 판단 불가라 `None`(JSON null)로
+        둔다(실제 로봇 없이 True/False로 단정하면 과대 청구 원칙
+        위반). `health.conveyor`는 "최근 성공한 호출"이 아니라
+        `service_is_ready()`(연결 여부)로 대체했다 -- 상태 확인을
+        위해 실제로 컨베이어를 움직이는 건 부작용이 커서 부적절
+        하다고 판단.
+        """
+        now_ros = self.get_clock().now().nanoseconds / 1e9
+        camera_ok = (
+            self._last_image_time is not None
+            and (now_ros - self._last_image_time) < 2.0
+        )
+        counts = dict(self._bin_counts)
+        total = sum(counts.values())
+        payload = {
+            "ts": time.time(),
+            "state": self._voice_state,
+            "stage": self._stage,
+            "counts": counts,
+            "total": total,
+            "last": self._last_result,
+            "reach_limit_px": self._reach_limit_px,
+            "health": {
+                "camera": camera_ok,
+                "robot": None if self._dry_run else True,
+                "conveyor": self._conveyor_set_speed_client.service_is_ready(),
+                "stt": self.count_publishers("/voice_command") > 0,
+                "tts": self.count_subscribers("/voice/tts/say") > 0,
+            },
+        }
+        msg = String()
+        msg.data = json.dumps(payload, ensure_ascii=False)
+        self._ui_state_pub.publish(msg)
+
     def _report_status(self) -> None:
         total = sum(self._pick_counts.values())
         if total == 0:
@@ -501,17 +633,41 @@ class TrackingNode(Node):
         dry-run 전용 여부는 `vision.dry_run` 파라미터로 제어.
         """
         frame = self._bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
+        frame_h, frame_w = frame.shape[:2]
         dets = self._detector.detect_all(frame, max_det=self._max_det)
         now = self.get_clock().now().nanoseconds / 1e9
+        self._last_image_time = now
+
+        # [완료 — 8일차, v66 회신] 클라이언트측(브라우저) bbox 오버레이용.
+        # `locked`은 원안(v64)처럼 "이번 프레임에 Pick으로 선택된 그
+        # 트랙"이 아니라 **"pending_count가 확정 기준을 이미 넘긴
+        # 트랙 전체"**로 단순화했다 -- 전자는 `best` 선택 시점에만
+        # 잠깐 참이었다가 바로 `_execute_pick`이 블로킹을 시작해
+        # 버려서(2-2절과 같은 한계) 사실상 UI에 보일 일이 없다.
+        # 후자가 "확정까지 남은 프레임" 표시 목적(v66 3-1절)에
+        # 더 부합한다고 판단 -- 웹 클로드 확인 필요.
+        det_items: list[dict] = []
 
         matched_ids = set()
         for det in dets:
             on_belt = det.anchor_pixel[1] >= self._belt_pixel_y_min
             if not on_belt:
+                det_items.append({
+                    "cls": det.class_name, "conf": round(det.confidence, 3),
+                    "bbox": det.bbox, "anchor": det.anchor_pixel,
+                    "pending": 0, "required": self._min_consecutive_frames,
+                    "locked": False,
+                })
                 continue
             try:
                 base = self.pixel_to_base(*det.anchor_pixel)
             except RayPlaneParallelError:
+                det_items.append({
+                    "cls": det.class_name, "conf": round(det.confidence, 3),
+                    "bbox": det.bbox, "anchor": det.anchor_pixel,
+                    "pending": 0, "required": self._min_consecutive_frames,
+                    "locked": False,
+                })
                 continue
 
             track = self._match_track(det.class_name, float(base[0]), now, matched_ids)
@@ -532,6 +688,13 @@ class TrackingNode(Node):
             track["lost_count"] = 0
             matched_ids.add(id(track))
 
+            det_items.append({
+                "cls": det.class_name, "conf": round(det.confidence, 3),
+                "bbox": det.bbox, "anchor": det.anchor_pixel,
+                "pending": track["pending_count"], "required": self._min_consecutive_frames,
+                "locked": track["pending_count"] >= self._min_consecutive_frames,
+            })
+
             self.get_logger().info(
                 "class=%s conf=%.2f anchor=%s kf_x=%.1f kf_vx=%.2f pending=%d "
                 "confirmed=%s holding=%s"
@@ -539,6 +702,11 @@ class TrackingNode(Node):
                    track["kf"].state.x, track["kf"].state.vx, track["pending_count"],
                    track["pending_count"] >= self._min_consecutive_frames, self._holding)
             )
+
+        detections_payload = {"ts": time.time(), "w": frame_w, "h": frame_h, "items": det_items}
+        det_msg = String()
+        det_msg.data = json.dumps(detections_payload, ensure_ascii=False)
+        self._ui_detections_pub.publish(det_msg)
 
         for track in list(self._tracks):
             if id(track) not in matched_ids:
@@ -557,18 +725,21 @@ class TrackingNode(Node):
         # PAUSED/STOPPING) 검출·추적은 계속하되(위에서 이미 처리됨)
         # Pick 트리거만 막는다.
         if self._voice_state != "RUNNING":
+            self._stage = "idle"
             return
 
         candidates = [
             t for t in self._tracks if t["pending_count"] >= self._min_consecutive_frames
         ]
         if not candidates:
+            self._stage = "track" if self._tracks else "detect"
             return
 
         # 인덱싱 -- 신뢰도 기준이 아니라 벨트 진행방향(가장 앞선 물체)
         # 기준으로 다음 Pick 대상을 정한다.
         best = max(candidates, key=lambda t: t["kf"].state.x)
         self._tracks.remove(best)
+        self._stage = "predict"
 
         try:
             predicted = self.predict_pickup_point(best)
@@ -578,8 +749,10 @@ class TrackingNode(Node):
                 % (best["class_name"], predicted, self._dry_run, len(self._tracks))
             )
             if not self._dry_run:
+                self._stage = "pick"
                 self._execute_pick(best["class_name"], best)
         except (RuntimeError, KeyError) as e:
+            self._publish_ui_alert("warn", f"파지 예측/실행 건너뜀: {e}")
             self.get_logger().warn(f"pick prediction/execution skipped: {e}")
 
     def predict_pickup_point(self, track: dict) -> np.ndarray:
@@ -832,6 +1005,10 @@ class TrackingNode(Node):
 
         max_x = mt.get("max_reachable_x")
         if max_x is not None and predicted_x > max_x:
+            self._publish_ui_alert(
+                "warn",
+                f"예측 좌표 도달 범위 초과 — 건너뜀 (predicted_x={predicted_x:.1f}mm)",
+            )
             self.get_logger().warn(
                 f"[EXEC] predicted_x={predicted_x:.1f} > max_reachable_x={max_x} "
                 "-- 표준 자세로 도달 불가, MoveLine 시도 없이 중단(물체가 벨트 "
@@ -847,6 +1024,7 @@ class TrackingNode(Node):
         self._call_move_line(hover, h_vel, h_vel, mode=0)
         pos = self._get_current_posx()
         if abs(pos[0] - hover[0]) > 5.0 or abs(pos[1] - hover[1]) > 5.0:
+            self._publish_ui_alert("error", "벨트 상공 이동 실패 — 파지 중단")
             self.get_logger().error(
                 f"[EXEC] hover move did not reach target (got {pos[:3]}, "
                 f"wanted {hover[:3]}) -- aborting pick"
@@ -895,11 +1073,12 @@ class TrackingNode(Node):
         # sleep 대신 `_get_workpiece_weight_avg()`(5회 평균)로 교체
         # (baseline/post-pick 둘 다) -- 노이즈를 시간이 아니라 반복
         # measurement 평균으로 줄인다.
+        self._stage = "measure"
         forced_bin = None
+        net_weight = None
         if weight_check is not None:
             weight_kg = self._get_workpiece_weight_avg()
             threshold = weight_check["threshold_kg"]
-            net_weight = None
             if weight_kg is not None and baseline_weight is not None:
                 net_weight = weight_kg - baseline_weight
             self.get_logger().info(
@@ -909,12 +1088,26 @@ class TrackingNode(Node):
             )
             if net_weight is not None and net_weight > threshold:
                 forced_bin = weight_check["review_bin"]
+                self._publish_ui_alert(
+                    "warn", f"{item_key} 무게 초과 — {forced_bin}으로 라우팅"
+                )
                 self.get_logger().warn(
                     f"[EXEC] {item_key} over weight threshold -- routing to "
                     f"{forced_bin} instead (내용물 있는 것으로 의심)"
                 )
 
+        # [완료 — 8일차, v64 회신] `/ui/state`의 `last` 필드용 -- 실제
+        # 통 이름(dest)은 아직 모른다(_place_item/_handoff_item이
+        # 성공해야 확정), 여기서는 item/weight_g/reason만 먼저 채운다.
+        self._last_result = {
+            "item": item_key,
+            "dest": None,
+            "weight_g": None if net_weight is None else round(net_weight * 1000, 1),
+            "reason": "over_weight" if forced_bin else None,
+        }
+
         self.get_logger().info(f"[EXEC] pick complete for {item_key}, placing...")
+        self._stage = "place"
         self._place_item(item_key, forced_bin=forced_bin)
 
     def _place_item(self, item_key: str, forced_bin: str | None = None) -> None:
@@ -934,10 +1127,12 @@ class TrackingNode(Node):
         v_vel = [mt["vertical_vel"], mt["vertical_acc"]]
         route = self._item_routing["routing"].get(item_key)
         if route is None:
+            self._publish_ui_alert("error", f"{item_key} 라우팅 설정 없음 — 들고 대기")
             self.get_logger().error(f"no routing entry for {item_key!r} -- 들고 대기")
             return
 
         if route["type"] == "human_handoff":
+            self._stage = "handoff"
             self._handoff_item(item_key)
             return
 
@@ -949,6 +1144,9 @@ class TrackingNode(Node):
         self._call_move_line(hover_pose, h_vel, h_vel, mode=0)
         pos = self._get_current_posx()
         if abs(pos[0] - hover_pose[0]) > 5.0 or abs(pos[1] - hover_pose[1]) > 5.0:
+            self._publish_ui_alert(
+                "error", f"{bin_name} 상공 이동 실패 — 배치 중단, 사람 확인 필요"
+            )
             self.get_logger().error(
                 f"[PLACE] bin hover move did not reach target (got {pos[:3]}, "
                 f"wanted {hover_pose[:3]}) -- 들고 대기, 배치 중단, 벨트도 정지 유지"
@@ -984,6 +1182,10 @@ class TrackingNode(Node):
 
         self._holding = False
         self._pick_counts[item_key] = self._pick_counts.get(item_key, 0) + 1
+        self._bin_counts[bin_name] = self._bin_counts.get(bin_name, 0) + 1
+        if self._last_result is not None and self._last_result.get("item") == item_key:
+            self._last_result["dest"] = bin_name
+        self._stage = "idle"
         self.get_logger().info(f"[PLACE] {item_key} placed in {bin_name}, restarting conveyor")
         self._call_conveyor("on")
 
@@ -1001,13 +1203,26 @@ class TrackingNode(Node):
         임계값은 그 예비 시행에서 쓴 잠정값(10mm)을 기본값으로 둔다.
 
         절차: 그리퍼 닫힌 채 z만 상승(제시 높이) -> task_compliance_ctrl
-        (저강성)으로 순응 모드 진입 -> get_current_posx를 폴링해 시작
-        위치 대비 변위가 임계값을 넘으면(사람이 당김) 그리퍼 오픈 ->
+        (저강성)으로 순응 모드 진입 -> 기준점 캡처 -> get_current_posx
+        를 폴링해 **수평 이동 속도**가 연속 N회 임계값 이상이고
+        AND 누적 변위도 임계값을 넘으면(사람이 당김) 그리퍼 오픈 ->
         release_compliance_ctrl로 순응 모드 해제 -> 원래 높이로 복귀
-        -> 벨트 재가동.
+        -> 벨트 재가동. 판별 기준이 "누적 변위(총량)"에서 "수평
+        속도"로 바뀐 경위는 아래 `_handoff_item` 본문의 주석(8일차,
+        v76 회신) 참고 -- 총량 기준으로는 느린 크리프를 못 걸러낸다는
+        지적을 받고 전환했다.
 
-        [전제] 오늘 최초 실물 시행 -- 10회 연속 검증 전이므로 "안전이
-        확정됐다"고 표현하지 않는다(CLAUDE.md 과대 청구 금지 원칙).
+        **[완료 — 8일차, 팀결정] `timeout_sec` 안에 당김이 감지되지
+        않으면** 그 자리에서 그냥 여는 대신(이전 동작 -- 물체가 그
+        자리에서 낙하) **review_bin("확인 필요")으로 정상 배치
+        시퀀스를 거쳐 옮긴다.**
+
+        [전제] 10회 연속 무사고 검증 전이므로 "안전이 확정됐다"고
+        표현하지 않는다(CLAUDE.md 과대 청구 금지 원칙) -- 오히려
+        8일차에 관제PC 실물 테스트에서 오탐 릴리즈(사람 없이 약
+        3초 만에 릴리즈, 물체 낙하)가 재현됐고, 그 다음 수정(적응형
+        settle)도 근본 해결이 아니라는 지적을 받아 판별 방식 자체를
+        속도 기반으로 바꿨다 — 이 역시 로봇 실물 재검증 전.
         """
         mt = self._motion_timing
         v_vel = [mt["vertical_vel"], mt["vertical_acc"]]
@@ -1032,53 +1247,195 @@ class TrackingNode(Node):
         self._call_task_compliance_ctrl(stx=stiffness, ref=0, time_=compliance_transition_sec)
         time.sleep(compliance_transition_sec)
 
-        # [버그 발견·수정 — 6일차, 핸드오버 오탐 릴리즈] start_pos를
-        # 순응모드 진입 *이전*에 캡처했더니, 저강성(500) 진입 자체가
-        # 물체 무게로 인한 자연스러운 처짐(중력)을 만들어 그게 "당김"
-        # 으로 오인됨(사람이 안 당겼는데 2.9초 만에 disp=10.7mm로 릴리즈
-        # 되는 사고 재현, 사진으로 캔이 사람 손 없이 떨어지는 것 확인).
-        # **수정**: start_pos를 순응모드 진입 + settle 대기 *이후*로
-        # 옮긴다 -- 이러면 중력에 의한 처짐은 이미 기준점에 포함되고,
-        # 그 이후의 "추가" 변위만 당김으로 잡힌다.
+        # [버그 이력]
+        # 6일차: start_pos를 순응모드 진입 *이전*에 캡처 -> 저강성
+        #   진입 자체의 중력 처짐을 "당김"으로 오인(2.9초만에
+        #   disp=10.7mm로 오탐 릴리즈, 물체 낙하). 수정: 진입 +
+        #   고정 0.5초 settle 후 캡처.
+        # 8일차(1차 재발): 관제PC 실물에서 사람 없이 약 3초 만에
+        #   또 오탐 릴리즈 -- 고정 0.5초로는 처짐이 다 안 멈춘
+        #   상태였을 것으로 추정. 수정: 위치가 실제로 멈출 때까지
+        #   (연속 폴링 간 이동량이 임계값 이하) 적응적으로 기다린
+        #   뒤 캡처하는 방식으로 교체.
+        # 8일차(v76 회신, 재정정): **적응형 settle도 근본 해결이
+        #   아니다** -- "이동량이 매 폴링 2mm 이하"는 변화율 조건일
+        #   뿐 총량 조건이 아니라서, 물체가 폴링마다 2mm씩 계속
+        #   처지는 **느린 크리프(creep)**는 settle 조건을 계속
+        #   통과하면서도 몇 초에 걸쳐 누적되면 결국 총 변위 임계값을
+        #   넘는다 -- 기준점을 한 번 잡고 누적 변위만 재는 구조인 한
+        #   settle을 아무리 정교하게 해도 이 문제가 남는다는 지적을
+        #   받고 판별 방식 자체를 바꿨다.
+        #
+        # **[완료 — 8일차, v76 회신] 판별 기준을 "누적 변위(총량)"
+        # 에서 "수평 속도"로 전환.** 물리적으로 사람이 당기는 동작은
+        # 빠르고(추정 20~50mm/s), 중력에 의한 처짐/크리프는 느리다
+        # (6일차 사고 실측 기준 평균 약 3.7mm/s) -- 총량이 아니라
+        # **속도**로 보면 느린 크리프가 아무리 오래 누적돼도 걸리지
+        # 않는다. 그래서 적응형 settle 로직 자체가 불필요해져
+        # 제거했다(속도 게이팅이 스스로 초기 전이 구간의 빠른 튐도
+        # 걸러낼 수 있음 -- 단, 진입 직후 급격한 첫 처짐 스냅은
+        # `compliance_transition_sec` 대기로 흡수).
+        #
+        # 릴리즈 조건(AND, v76 1-5절 권장 조합): (a) **수평** 방향
+        # (dx,dy만, dz 제외 -- 중력 처짐은 -Z가 주성분이라 애초에
+        # 속도 계산에서 배제, v76 1-4절) 이동 속도가 연속
+        # `pull_speed_consecutive`회 이상 `pull_speed_mm_per_s` 이상
+        # AND (b) 시작점 대비 누적 3D 변위가 `release_threshold_mm`
+        # 이상(미세한 흔들림 배제용 하한선, 기존 로직 유지).
+        # [전제, 미검증] `pull_speed_mm_per_s`=15.0은 실측 3.7mm/s와
+        # 추정 20~50mm/s 사이의 중간값(v76 1-3절) -- 로봇 실물
+        # 재검증(느린 처짐 조건/실제 당김 조건 둘 다) 전까지 확정
+        # 값 아님. 매 폴링 로그를 남겨(아래) 다음 실물 테스트에서
+        # 분포를 실측할 수 있게 했다.
         start_pos = self._get_current_posx()
+        start_t = time.monotonic()
+        self.get_logger().info(
+            f"[HANDOFF] baseline captured, start_pos="
+            f"{[round(v, 1) for v in start_pos[:3]]}"
+        )
+
+        pull_speed_mm_per_s = cfg.get("pull_speed_mm_per_s", 15.0)
+        pull_speed_consecutive = cfg.get("pull_speed_consecutive", 2)
 
         released = False
+        fast_count = 0
+        prev_pos = start_pos
+        prev_t = start_t
         deadline = time.monotonic() + timeout_sec
         while time.monotonic() < deadline:
             time.sleep(poll_interval_sec)
+            now_t = time.monotonic()
             cur_pos = self._get_current_posx()
-            disp = (
+            dt = now_t - prev_t  # [v76 1-6절] 고정 poll_interval_sec을
+            # 가정하지 않고 실제 경과 시간으로 나눈다.
+
+            step_horizontal = (
+                (cur_pos[0] - prev_pos[0]) ** 2 + (cur_pos[1] - prev_pos[1]) ** 2
+            ) ** 0.5
+            speed_horizontal = step_horizontal / dt if dt > 0 else 0.0
+
+            total_disp = (
                 (cur_pos[0] - start_pos[0]) ** 2
                 + (cur_pos[1] - start_pos[1]) ** 2
                 + (cur_pos[2] - start_pos[2]) ** 2
             ) ** 0.5
-            if disp > release_threshold_mm:
+            step_vertical = cur_pos[2] - prev_pos[2]  # 로그 참고용(부호로 처짐/들어올림 구분)
+
+            is_fast = speed_horizontal >= pull_speed_mm_per_s
+            fast_count = fast_count + 1 if is_fast else 0
+
+            # [v76 요청2] 다음 실물 테스트에서 처짐/당김 속도 분포를
+            # 실측할 수 있도록 매 폴링 상세 로그를 남긴다.
+            self.get_logger().info(
+                "[HANDOFF] poll elapsed=%.2fs pos=(%.1f,%.1f,%.1f) "
+                "total_disp=%.1fmm step_horiz=%.1fmm step_vert=%+.1fmm "
+                "dt=%.2fs speed_horiz=%.1fmm/s fast_count=%d/%d"
+                % (now_t - start_t, cur_pos[0], cur_pos[1], cur_pos[2],
+                   total_disp, step_horizontal, step_vertical, dt,
+                   speed_horizontal, fast_count, pull_speed_consecutive)
+            )
+
+            prev_pos, prev_t = cur_pos, now_t
+
+            if fast_count >= pull_speed_consecutive and total_disp > release_threshold_mm:
                 self.get_logger().info(
-                    f"[HANDOFF] pull detected: disp={disp:.1f}mm > "
-                    f"{release_threshold_mm}mm -- releasing"
+                    f"[HANDOFF] pull detected: speed_horiz={speed_horizontal:.1f}mm/s "
+                    f">= {pull_speed_mm_per_s}mm/s ({fast_count}회 연속) AND "
+                    f"total_disp={total_disp:.1f}mm > {release_threshold_mm}mm -- releasing"
                 )
                 released = True
                 break
 
-        if not released:
-            self.get_logger().warn(
-                f"[HANDOFF] no pull detected within {timeout_sec}s -- "
-                "opening gripper anyway (timeout fallback)"
-            )
+        if released:
+            self._call_gripper("o")
+            time.sleep(self._item_routing.get("place_open_wait_sec", 1.0))
 
-        self._call_gripper("o")
-        time.sleep(self._item_routing.get("place_open_wait_sec", 1.0))
+            self.get_logger().info("[HANDOFF] releasing compliance mode")
+            self._call_release_compliance_ctrl()
+            time.sleep(compliance_transition_sec)
 
-        self.get_logger().info("[HANDOFF] releasing compliance mode")
+            self.get_logger().info(f"[HANDOFF] returning to belt hover height")
+            self._call_move_line([0.0, 0.0, -extra_rise_mm, 0.0, 0.0, 0.0], v_vel, v_vel, mode=1)
+
+            self._holding = False
+            self._pick_counts[item_key] = self._pick_counts.get(item_key, 0) + 1
+            self._bin_counts["human_handoff"] = self._bin_counts.get("human_handoff", 0) + 1
+            if self._last_result is not None and self._last_result.get("item") == item_key:
+                self._last_result["dest"] = "human_handoff"
+            self._stage = "idle"
+            self.get_logger().info(f"[HANDOFF] {item_key} handed off, restarting conveyor")
+            self._call_conveyor("on")
+            return
+
+        # [완료 — 8일차, 팀결정] 타임아웃(사람이 안 받아감) 시 그
+        # 자리에서 그냥 여는 대신 review_bin("확인 필요")으로 옮긴다.
+        # **이전 동작**: 제시 높이에서 바로 그리퍼를 열어 물체가 그
+        # 자리에서 낙하했다(실측 -- 관제PC 테스트에서 약 3초 만에
+        # 라벨 페트병 낙하 확인, 단 이 사고 자체는 아래 STABLE_EPS_MM
+        # settle 수정이 원인이었을 가능성이 높음 -- 타임아웃 15초를
+        # 다 채우기 전에 오탐 릴리즈였을 것으로 추정, 실측 로그 없어
+        # 확정은 아님). **지금 동작**: 정상 배치와 같은 "수직 상승 ->
+        # 수평 이동 -> 수직 하강" 3단계 시퀀스(CLAUDE.md 안전 절)를
+        # 그대로 따라 review_bin에 배치한다 -- 사람이 못 받아간
+        # 물체를 허공에 떨어뜨리지 않는다.
+        self.get_logger().warn(
+            f"[HANDOFF] {item_key}: no pull detected within {timeout_sec}s -- "
+            "routing to review_bin instead of releasing in place"
+        )
+        self.get_logger().info("[HANDOFF] releasing compliance mode before re-routing")
         self._call_release_compliance_ctrl()
         time.sleep(compliance_transition_sec)
 
-        self.get_logger().info(f"[HANDOFF] returning to belt hover height")
-        self._call_move_line([0.0, 0.0, -extra_rise_mm, 0.0, 0.0, 0.0], v_vel, v_vel, mode=1)
+        h_vel = [mt["horizontal_vel"], mt["horizontal_acc"]]
+        bin_name = "review_bin"
+        hover_pose = get_bin_pose(bin_name, "hover")
+        place_pose = get_bin_pose(bin_name, "place")
+
+        self.get_logger().info(f"[HANDOFF] {item_key} -> {bin_name} (timeout): move to bin hover")
+        self._call_move_line(hover_pose, h_vel, h_vel, mode=0)
+        pos = self._get_current_posx()
+        if abs(pos[0] - hover_pose[0]) > 5.0 or abs(pos[1] - hover_pose[1]) > 5.0:
+            self._publish_ui_alert(
+                "error", f"{bin_name} 상공 이동 실패 — 배치 중단, 사람 확인 필요"
+            )
+            self.get_logger().error(
+                f"[HANDOFF] {bin_name} hover move did not reach target (got {pos[:3]}, "
+                f"wanted {hover_pose[:3]}) -- 들고 대기, 배치 중단, 벨트도 정지 유지"
+                "(사람이 확인 후 재시작할 것)"
+            )
+            return
+
+        self.get_logger().info(f"[HANDOFF] descend to {bin_name} place pose")
+        self._call_move_line(place_pose, v_vel, v_vel, mode=0)
+
+        self.get_logger().info("[HANDOFF] open gripper")
+        self._call_gripper("o")
+        time.sleep(self._item_routing.get("place_open_wait_sec", 1.0))
+
+        self.get_logger().info(f"[HANDOFF] rise back to {bin_name} hover")
+        self._call_move_line(hover_pose, v_vel, v_vel, mode=0)
+
+        next_x = max((t["kf"].state.x for t in self._tracks), default=None)
+        if next_x is None:
+            next_x = mt.get("default_return_x", 300.0)
+        belt_hover = [
+            next_x, mt["belt_hover_y"], mt["belt_hover_z"],
+            mt["belt_hover_rx"], mt["belt_hover_ry"], mt["belt_hover_rz"],
+        ]
+        self.get_logger().info(f"[HANDOFF] return to belt hover (x={next_x:.1f})")
+        self._call_move_line(belt_hover, h_vel, h_vel, mode=0)
 
         self._holding = False
         self._pick_counts[item_key] = self._pick_counts.get(item_key, 0) + 1
-        self.get_logger().info(f"[HANDOFF] {item_key} handed off, restarting conveyor")
+        self._bin_counts[bin_name] = self._bin_counts.get(bin_name, 0) + 1
+        if self._last_result is not None and self._last_result.get("item") == item_key:
+            self._last_result["dest"] = bin_name
+            self._last_result["reason"] = "handoff_timeout"
+        self._publish_ui_alert("warn", f"{item_key} 인계 시간 초과 — {bin_name}으로 재배치")
+        self._stage = "idle"
+        self.get_logger().info(
+            f"[HANDOFF] {item_key} timeout -> placed in {bin_name}, restarting conveyor"
+        )
         self._call_conveyor("on")
 
 

@@ -38,7 +38,6 @@ from rclpy.node import Node
 from std_msgs.msg import Empty, String
 from std_srvs.srv import Trigger
 
-_CONVEYOR_BIN = "/home/rokey/bin/conveyor"
 _FIXED_SPEED = 100  # steps/sec -- CLAUDE.md "현재 확정값", 탈조 없음 확인됨
 
 
@@ -48,6 +47,14 @@ class ConveyorNode(Node):
 
         self.declare_parameter("conveyor.watchdog_enabled", False)
         self.declare_parameter("conveyor.watchdog_timeout_sec", 2.0)
+        # [완료 — 6일차, v61 회신] 기계별 값(시리얼을 여는 스크립트
+        # 경로) -- 예전엔 특정 계정 홈 디렉터리가 코드에 박혀 있었다
+        # (`/home/rokey/bin/conveyor`). 파라미터로 빼서 관제 PC 등
+        # 다른 계정/경로에서도 동작하게 한다 -- 기본값은 기존 값 그대로
+        # 유지(하위 호환), 다른 기계에서는 `config/local.yaml`로
+        # 오버라이드할 것(config/local.example.yaml 참고).
+        self.declare_parameter("conveyor.script_path", "/home/rokey/bin/conveyor")
+        self._conveyor_bin = self.get_parameter("conveyor.script_path").value
         self._watchdog_enabled = self.get_parameter("conveyor.watchdog_enabled").value
         self._watchdog_timeout_sec = self.get_parameter(
             "conveyor.watchdog_timeout_sec"
@@ -83,7 +90,7 @@ class ConveyorNode(Node):
         남기고 계속 동작(명령 전송 실패 시 1회 재시도 후 실패 반환)."""
         for attempt in range(2):
             try:
-                subprocess.run([_CONVEYOR_BIN, cmd], check=True, timeout=5.0)
+                subprocess.run([self._conveyor_bin, cmd], check=True, timeout=5.0)
                 self._last_command_time = time.monotonic()
                 return True
             except Exception as e:

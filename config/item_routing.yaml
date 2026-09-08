@@ -58,10 +58,24 @@ weight_check:
 # (저강성 500, 잠정 release 임계값 10mm, TCP 변위 36.8mm까지
 # SAFE_OFF 없음 확인)을 그대로 가져온 것 — 이 값 자체가 10회
 # 연속 검증을 거친 것은 아직 아니다(과대 청구 금지).
+#
+# **[정정 — 8일차, v76 회신] 릴리즈 판정을 "누적 변위(총량)"
+# 단독 조건에서 "수평 속도 AND 누적 변위" 조합으로 바꿨다** —
+# 총량만 보면 사람이 안 당겨도 저강성 진입 후 느린 처짐(크리프)이
+# 몇 초에 걸쳐 누적돼 release_threshold_mm을 넘어버린다(관제PC
+# 실물 재현: 약 3초 만에 오탐 릴리즈, 라벨 페트병 낙하). 사람이
+# 당기는 동작(빠름, 추정 20~50mm/s)과 중력 처짐(느림, 실측 평균
+# 약 3.7mm/s)은 속도로 뚜렷이 갈린다는 판단. `pull_speed_mm_per_s`
+# /`pull_speed_consecutive`는 [전제, 미검증] — 실측 3.7mm/s와
+# 추정 상한 사이 중간값으로 잡은 잠정치, 로봇 실물로 처짐/당김
+# 두 조건의 속도 분포를 재본 뒤 조정할 것(`_handoff_item`의 매
+# 폴링 로그로 확인 가능).
 handoff:
   extra_rise_mm: 120.0
   stiffness: [500.0, 500.0, 500.0, 100.0, 100.0, 100.0]
   release_threshold_mm: 10.0
+  pull_speed_mm_per_s: 15.0
+  pull_speed_consecutive: 2
   timeout_sec: 15.0
   poll_interval_sec: 0.3
   compliance_transition_sec: 0.5

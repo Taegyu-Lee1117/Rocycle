@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>재활용로봇 관제 화면</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/roslibjs/1.3.0/roslib.min.js"></script>
+<style>
+  :root {
+    --bg: #14161a;
+    --panel: #1f232a;
+    --panel-2: #262b33;
+    --border: #343a44;
+    --text: #e8e9ec;
+    --text-muted: #8b909a;
+    --state-idle: #8b909a;
+    --state-running: #33c17a;
+    --state-paused: #e6b93c;
+    --state-stopping: #e08a3c;
+    --ok: #33c17a;
+    --warn: #e6b93c;
+    --error: #e05c5c;
+    --review: #e6b93c;
+    --handoff: #378add;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: var(--bg); color: var(--text);
+    font-family: "Pretendard", "Malgun Gothic", -apple-system, sans-serif;
+  }
+  #app { position: relative; width: 100%; height: 100vh; overflow: hidden; }
+
+  /* ---------- 공통 ---------- */
+  .hidden { display: none !important; }
+  button {
+    font-family: inherit; cursor: pointer; border: none; border-radius: 8px;
+    color: var(--text); background: var(--panel-2);
+  }
+  button:hover { filter: brightness(1.15); }
+  .estop-btn {
+    position: fixed; z-index: 50;
+    background: var(--error); color: #fff; font-weight: 700;
+    box-shadow: 0 2px 10px rgba(0,0,0,.4);
+  }
+  #estopMain { top: 20px; right: 20px; padding: 18px 26px; font-size: 20px; border-radius: 12px; }
+  #estopDetail { top: 14px; right: 160px; padding: 8px 16px; font-size: 14px; border-radius: 8px; }
+  .estop-caption {
+    position: fixed; z-index: 50; font-size: 11px; color: var(--text-muted);
+    text-align: right;
+  }
+  #estopMainCaption { top: 68px; right: 20px; width: 160px; }
+  #estopDetailCaption { top: 40px; right: 160px; width: 130px; }
+
+  /* ---------- 조작 버튼 (v74 2절, 음성 대체용 -- /voice_command
+     로 그대로 나간다) ---------- */
+  #controlButtons {
+    position: fixed; top: 92px; right: 20px; z-index: 50;
+    display: flex; gap: 6px;
+  }
+  #controlButtons button {
+    padding: 6px 10px; font-size: 12px; border-radius: 8px;
+    background: var(--panel-2);
+  }
+  #controlButtons button:active { filter: brightness(1.3); }
+  #estopBanner {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 60;
+    background: var(--error); color: #fff; text-align: center;
+    padding: 10px; font-weight: 600; font-size: 15px;
+  }
+
+  /* ---------- 알림 패널 (/ui/alert) ---------- */
+  #alertPanel {
+    position: fixed; top: 100px; right: 20px; width: 300px; z-index: 45;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .alert-item {
+    padding: 10px 14px; border-radius: 8px; font-size: 13px;
+    background: var(--panel); border-left: 4px solid var(--warn);
+    box-shadow: 0 2px 8px rgba(0,0,0,.35); transition: opacity .4s ease;
+  }
+  .alert-item.error { border-left-color: var(--error); }
+  .alert-time { font-size: 11px; color: var(--text-muted); margin-bottom: 2px; }
+
+  /* ---------- 메인 화면 ---------- */
+  #mainScreen { position: absolute; inset: 0; background: #000; }
+  /* [완료 -- 8일차, v72 회신] `<img>`(MJPEG multipart 미지원,
+     실측 확인) -> `<iframe>`(실제 창에서도 원인 불명 렌더링
+     불안정, v71/v72 실측) 두 번 실패한 뒤 채택. `web_video_server`
+     의 `/snapshot?topic=...&type=jpeg`는 평범한 JPEG 응답이라
+     `<img>`/`Image()` 객체로 100% 정상 로드된다(멀티파트 스트림이
+     아니므로 이번 세션에서 겪은 문제 자체가 원천적으로 없음).
+     주기적으로 새 이미지를 받아 canvas에 그리는 방식(폴링) --
+     bbox 오버레이(v66 4-3절)도 같은 canvas 위에 그리면 되므로
+     나중에 파이프라인이 합쳐진다는 이점도 있음. */
+  #videoCanvas { position: fixed; inset: 0; width: 100%; height: 100%; background: #000; z-index: 0; }
+  #videoPlaceholder {
+    position: fixed; left: 20px; bottom: 20px; z-index: 5;
+    color: var(--text-muted); font-size: 13px;
+    background: rgba(20,22,26,.75); padding: 6px 12px; border-radius: 8px;
+  }
+  #statusBar {
+    position: absolute; top: 20px; left: 20px;
+    background: rgba(20,22,26,.85); border: 1px solid var(--border);
+    border-radius: 14px; padding: 16px 22px; min-width: 260px;
+    backdrop-filter: blur(4px);
+  }
+  #stateText { font-size: 40px; font-weight: 800; line-height: 1.1; }
+  #elapsedText { margin-top: 6px; font-size: 15px; color: var(--text-muted); min-height: 20px; }
+  #detailBtn { margin-top: 12px; padding: 8px 16px; font-size: 14px; }
+
+  /* ---------- 상세 페이지 ---------- */
+  #detailScreen { position: absolute; inset: 0; display: flex; flex-direction: column; background: var(--bg); }
+  #detailHeader {
+    display: flex; align-items: center; gap: 16px;
+    padding: 16px 24px; border-bottom: 1px solid var(--border);
+  }
+  #backBtn { padding: 8px 14px; font-size: 14px; }
+  #detailTitle { font-size: 20px; font-weight: 700; }
+  .badge {
+    padding: 4px 12px; border-radius: 999px; font-size: 13px; font-weight: 700;
+    background: var(--panel-2);
+  }
+  #detailTotal { margin-left: auto; color: var(--text-muted); font-size: 14px; }
+  #autoReturnNote { color: var(--text-muted); font-size: 12px; margin-left: 10px; }
+
+  #chartArea { flex: 1; padding: 24px 32px; overflow-y: auto; }
+  .bar-row { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+  .bar-label { width: 110px; font-size: 15px; text-align: right; flex-shrink: 0; }
+  .bar-track {
+    flex: 1; height: 28px; background: var(--panel); border-radius: 6px;
+    overflow: hidden; border: 1px solid var(--border);
+  }
+  .bar-fill { height: 100%; border-radius: 6px 0 0 6px; transition: width .3s ease; }
+  .bar-fill.normal { background: var(--ok); }
+  .bar-fill.review { background: var(--review); }
+  .bar-fill.handoff { background: var(--handoff); }
+  .bar-count { width: 34px; text-align: left; font-size: 18px; font-weight: 700; }
+  .bar-divider { border-top: 1px dashed var(--border); margin: 6px 0 16px; }
+
+  #bottomArea {
+    display: flex; border-top: 1px solid var(--border);
+    background: var(--panel);
+  }
+  #stageBox { flex: 1; padding: 16px 24px; border-right: 1px solid var(--border); }
+  #healthBox { width: 220px; padding: 16px 24px; }
+  .section-title { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; letter-spacing: .04em; }
+  #stageFlow { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .stage-chip {
+    padding: 4px 10px; border-radius: 999px; font-size: 12px;
+    background: var(--panel-2); color: var(--text-muted);
+  }
+  .stage-chip.active { background: var(--state-running); color: #06210f; font-weight: 700; }
+  #lastResultText { font-size: 14px; color: var(--text); }
+  .health-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 14px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--text-muted); flex-shrink: 0; }
+  .dot.ok { background: var(--ok); }
+  .dot.bad { background: var(--error); }
+  .dot.na { background: var(--text-muted); }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div id="estopBanner" class="hidden">비상정지 전달됨 — 벨트 정지, 로봇은 정지 시도 중</div>
+
+  <!-- ================= 메인 화면 ================= -->
+  <div id="mainScreen">
+    <canvas id="videoCanvas"></canvas>
+    <div id="videoPlaceholder">카메라 상태 확인 중...</div>
+    <div id="statusBar">
+      <div id="stateText">연결 중...</div>
+      <div id="elapsedText"></div>
+      <button id="detailBtn">상세 &rarr;</button>
+    </div>
+    <button id="estopMain" class="estop-btn">⏹ 비상정지</button>
+    <div id="estopMainCaption" class="estop-caption">위급 시 물리 버튼</div>
+    <div id="controlButtons">
+      <button id="btnStart">시작</button>
+      <button id="btnPause">일시정지</button>
+      <button id="btnResume">재개</button>
+      <button id="btnStop">종료</button>
+    </div>
+    <div id="alertPanel"></div>
+  </div>
+
+  <!-- ================= 상세 페이지 ================= -->
+  <div id="detailScreen" class="hidden">
+    <div id="detailHeader">
+      <button id="backBtn">&larr; 메인</button>
+      <div id="detailTitle">작업 현황</div>
+      <div id="detailBadge" class="badge">IDLE</div>
+      <button id="estopDetail" class="estop-btn">⏹ 비상정지</button>
+      <div id="estopDetailCaption" class="estop-caption">위급 시 물리 버튼</div>
+      <div id="detailTotal">총 0건 · 실시간<span id="autoReturnNote"></span></div>
+    </div>
+
+    <div id="chartArea">
+      <div id="normalBars"></div>
+      <div class="bar-divider"></div>
+      <div id="handoffBars"></div>
+      <div class="bar-divider"></div>
+      <div id="reviewBars"></div>
+    </div>
+
+    <div id="bottomArea">
+      <div id="stageBox">
+        <div class="section-title">진행 단계</div>
+        <div id="stageFlow"></div>
+        <div id="lastResultText">마지막 처리 결과 없음</div>
+      </div>
+      <div id="healthBox">
+        <div class="section-title">연결 상태</div>
+        <div id="healthList"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---------------------------------------------------------------
+  // 설정 -- URL 쿼리로 오버라이드 가능
+  //   예: index.html?rosbridge_host=192.168.1.50&video_port=8080
+  // 기본값은 이 페이지를 서빙하는 호스트(관제 PC)를 그대로 씀.
+  // ---------------------------------------------------------------
+  const qs = new URLSearchParams(location.search);
+  const ROSBRIDGE_HOST = qs.get("rosbridge_host") || location.hostname;
+  const ROSBRIDGE_PORT = qs.get("rosbridge_port") || "9090";
+  const VIDEO_HOST = qs.get("video_host") || location.hostname;
+  const VIDEO_PORT = qs.get("video_port") || "8080";
+  const VIDEO_TOPIC = qs.get("video_topic") || "/image_raw";
+
+  // [완료 -- 8일차, v69 회신] 통 이름 -> 화면 표시, 6개 막대/3색.
+  // "플라스틱"은 plastic_bin(무라벨 전용, 시연에서는 항상 0일
+  // 가능성이 높음)과 혼동될 수 있어 "플라스틱 통"으로 구체화했다
+  // -- 라벨 있는 페트병(pet_labeled, 시연에서 실제로 쓰는 것)은
+  // human_handoff(사람 전달)로 가지 plastic_bin이 아니다.
+  const NORMAL_BINS = [
+    { key: "plastic_bin", label: "플라스틱 통" },
+    { key: "can_bin", label: "캔" },
+    { key: "paper_bin", label: "종이" },
+    { key: "battery_bin", label: "건전지" },
+  ];
+  const HANDOFF_BINS = [
+    { key: "human_handoff", label: "사람 전달" },
+  ];
+  const REVIEW_BINS = [
+    { key: "review_bin", label: "확인 필요" },
+  ];
+  const BAR_MAX_FLOOR = 3; // [팀결정 -- v67 2-4절] 고정 최댓값, 초과 시 자동 확장
+
+  const STAGE_ORDER = ["idle", "detect", "track", "predict", "pick", "measure", "place", "handoff"];
+  const STAGE_LABEL = {
+    idle: "대기", detect: "검출", track: "추적", predict: "예측",
+    pick: "파지", measure: "측정", place: "배치", handoff: "인계",
+  };
+  const BUSY_STAGES = new Set(["predict", "pick", "measure", "place", "handoff"]);
+
+  const STATE_LABEL = { IDLE: "대기 중", RUNNING: "작업 중", PAUSED: "일시정지", STOPPING: "종료 중" };
+  const STATE_CLASS_VAR = {
+    IDLE: "--state-idle", RUNNING: "--state-running",
+    PAUSED: "--state-paused", STOPPING: "--state-stopping",
+  };
+
+  const AUTO_RETURN_SEC = 30;
+
+  // ---------------------------------------------------------------
+  // DOM refs
+  // ---------------------------------------------------------------
+  const el = (id) => document.getElementById(id);
+  const mainScreen = el("mainScreen");
+  const detailScreen = el("detailScreen");
+  const stateText = el("stateText");
+  const elapsedText = el("elapsedText");
+  const videoCanvas = el("videoCanvas");
+  const videoPlaceholder = el("videoPlaceholder");
+  const detailBadge = el("detailBadge");
+  const detailTotal = el("detailTotal");
+  const autoReturnNote = el("autoReturnNote");
+  const normalBars = el("normalBars");
+  const handoffBars = el("handoffBars");
+  const reviewBars = el("reviewBars");
+  const alertPanel = el("alertPanel");
+  const stageFlow = el("stageFlow");
+  const lastResultText = el("lastResultText");
+  const healthList = el("healthList");
+  const estopBanner = el("estopBanner");
+
+  // ---------------------------------------------------------------
+  // 비디오 스트림 (web_video_server, rosbridge와 무관한 별도 HTTP)
+  //
+  // [버그 발견·수정 -- 8일차, v71/v72 실측] `<img>`(MJPEG multipart
+  // 미지원, 실측 확인) -> `<iframe>`(실제 창에서도 렌더링이 불안정,
+  // 원인 규명 못 함) 두 단계를 거쳐 최종적으로 **snapshot 폴링 +
+  // canvas**로 전환했다(v72 3절 제안). `web_video_server`의
+  // `/snapshot?topic=...&type=jpeg`는 평범한 단일 JPEG 응답이라
+  // multipart 관련 문제 자체가 원천적으로 없다 -- `t=`로 캐시를
+  // 무력화하며 주기적으로 새로 받아 canvas에 그린다. bbox
+  // 오버레이(v66 4-3절)도 이 canvas 위에 그대로 그리면 되므로
+  // 나중에 파이프라인이 합쳐지는 이점도 있다.
+  // ---------------------------------------------------------------
+  const VIDEO_POLL_MS = 100; // 10fps -- UI 표시용이므로 충분(v72 3-3(d))
+  const vctx = videoCanvas.getContext("2d");
+
+  function resizeVideoCanvas() {
+    videoCanvas.width = videoCanvas.clientWidth;
+    videoCanvas.height = videoCanvas.clientHeight;
+  }
+  window.addEventListener("resize", resizeVideoCanvas);
+  resizeVideoCanvas();
+
+  // [버그 발견·수정 -- 8일차, v72 구현 중 실측] `setInterval`로
+  // 고정 주기마다 새 Image()를 만들면, 이전 요청이 아직 안 끝난
+  // 채로 다음 요청이 겹쳐 나간다 -- CDP Network 도메인으로 직접
+  // 확인해보니 이 "겹친 동시 요청" 패턴에서만 `web_video_server`
+  // 응답이 전부 `net::ERR_EMPTY_RESPONSE`로 실패했다(순차 curl
+  // 15연속, 동시 curl 10개 전부는 문제없이 200 -- 브라우저가 같은
+  // 호스트에 동시에 여러 개를 열 때만 재현되는 것으로 추정[추론],
+  // 정확한 서버측 원인은 못 밝힘). **수정**: 이전 요청이 완전히
+  // 끝난(성공/실패 무관) 뒤에만 다음 요청을 예약하는 자기재귀
+  // `setTimeout` 방식으로 교체 -- 동시에 최대 1개 요청만 유지된다.
+  function scheduleNextPoll() {
+    setTimeout(pollSnapshot, VIDEO_POLL_MS);
+  }
+  function pollSnapshot() {
+    const img = new Image();
+    img.onload = () => {
+      const cw = videoCanvas.width, ch = videoCanvas.height;
+      if (cw > 0 && ch > 0) {
+        const scale = Math.min(cw / img.naturalWidth, ch / img.naturalHeight);
+        const dw = img.naturalWidth * scale, dh = img.naturalHeight * scale;
+        vctx.fillStyle = "#000";
+        vctx.fillRect(0, 0, cw, ch);
+        vctx.drawImage(img, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
+      }
+      scheduleNextPoll();
+    };
+    // onerror에서도 폴링은 계속 이어간다(재시도) -- 카메라 연결
+    // 상태의 진짜 신호는 /ui/state의 health.camera다(서버가 이미
+    // 계산해 보내줌, renderMain 참고). 폴링 실패 한두 번으로 화면
+    // 표시를 바꾸지 않는다.
+    img.onerror = scheduleNextPoll;
+    img.src = `http://${VIDEO_HOST}:${VIDEO_PORT}/snapshot?topic=${encodeURIComponent(VIDEO_TOPIC)}&type=jpeg&t=${Date.now()}`;
+  }
+  pollSnapshot();
+
+  // ---------------------------------------------------------------
+  // rosbridge 연결
+  // ---------------------------------------------------------------
+  const ros = new ROSLIB.Ros({ url: `ws://${ROSBRIDGE_HOST}:${ROSBRIDGE_PORT}` });
+  ros.on("connection", () => { stateText.textContent = "연결됨"; });
+  ros.on("error", () => { stateText.textContent = "rosbridge 연결 오류"; });
+  ros.on("close", () => { stateText.textContent = "rosbridge 연결 끊김"; });
+
+  const uiStateTopic = new ROSLIB.Topic({ ros, name: "/ui/state", messageType: "std_msgs/msg/String" });
+  const uiAlertTopic = new ROSLIB.Topic({ ros, name: "/ui/alert", messageType: "std_msgs/msg/String" });
+
+  // [완료 -- 8일차, v74 회신] 조작 버튼 -- 음성이 안 먹힐 때 대비용
+  // 안전망. 새 인터페이스를 만들지 않고 팀원 STT/TTS와 tracking_node
+  // 가 이미 쓰는 `/voice_command`(std_msgs/String, 대문자 값)에
+  // 그대로 발행한다 -- tracking_node 입장에서는 음성이든 버튼이든
+  // 구분 없이 같은 상태머신을 탄다.
+  const voiceCommandTopic = new ROSLIB.Topic({
+    ros, name: "/voice_command", messageType: "std_msgs/msg/String",
+  });
+  function sendVoiceCommand(cmd) {
+    voiceCommandTopic.publish(new ROSLIB.Message({ data: cmd }));
+  }
+
+  const conveyorStopSrv = new ROSLIB.Service({ ros, name: "/conveyor/stop", serviceType: "std_srvs/srv/Trigger" });
+  // [전제, 확인 필요 -- v68 응답 참고] 실제 서비스 이름은 로봇
+  // 스택 기동 시(dsr01 네임스페이스) 확인 필요. dsr_msgs2/srv/MoveStop
+  // 존재는 소스코드로 확인했으나 인터럽트 여부는 미검증(v67 응답).
+  const moveStopSrv = new ROSLIB.Service({
+    ros, name: "/dsr01/dsr_controller2/motion/move_stop", serviceType: "dsr_msgs2/srv/MoveStop",
+  });
+
+  // ---------------------------------------------------------------
+  // 상태 -- 경과시간 계산은 클라이언트 시계 기준 (v67 1-3절)
+  // ---------------------------------------------------------------
+  let lastStage = "idle";
+  let busySinceWallClock = null;
+  let lastMsgWallClock = Date.now();
+  let latestPayload = null;
+
+  function onUiState(msg) {
+    let payload;
+    try { payload = JSON.parse(msg.data); } catch (e) { return; }
+    lastMsgWallClock = Date.now();
+    latestPayload = payload;
+
+    const stage = payload.stage || "idle";
+    if (BUSY_STAGES.has(stage) && !BUSY_STAGES.has(lastStage)) {
+      busySinceWallClock = Date.now();
+    }
+    if (!BUSY_STAGES.has(stage)) {
+      busySinceWallClock = null;
+    }
+    lastStage = stage;
+
+    renderMain(payload);
+    renderDetail(payload);
+  }
+  uiStateTopic.subscribe(onUiState);
+
+  uiAlertTopic.subscribe((msg) => {
+    let payload;
+    try { payload = JSON.parse(msg.data); } catch (e) { return; }
+    console.warn("[UI ALERT]", payload.level, payload.msg);
+    pushAlert(payload);
+  });
+
+  // [완료 -- 8일차, v69 4절] 메인 화면 우상단 알림 패널 -- /ui/alert를
+  // 직접 구독해 채운다(하드코딩 예시 아님). 최근 4개만 유지, 10초
+  // 후 서서히 사라짐.
+  function pushAlert(payload) {
+    const item = document.createElement("div");
+    item.className = "alert-item" + (payload.level === "error" ? " error" : "");
+    const t = new Date((payload.ts || Date.now() / 1000) * 1000);
+    const pad = (n) => String(n).padStart(2, "0");
+    const timeStr = `${pad(t.getHours())}:${pad(t.getMinutes())}:${pad(t.getSeconds())}`;
+    item.innerHTML = `<div class="alert-time">${timeStr}</div><div>${payload.msg || ""}</div>`;
+    alertPanel.prepend(item);
+    while (alertPanel.children.length > 4) {
+      alertPanel.removeChild(alertPanel.lastChild);
+    }
+    setTimeout(() => {
+      item.style.opacity = "0";
+      setTimeout(() => item.remove(), 400);
+    }, 10000);
+  }
+
+  function renderMain(payload) {
+    const state = payload.state || "IDLE";
+    stateText.textContent = STATE_LABEL[state] || state;
+    stateText.style.color = `var(${STATE_CLASS_VAR[state] || "--state-idle"})`;
+
+    const camOk = (payload.health || {}).camera;
+    videoPlaceholder.textContent =
+      camOk === true ? "" : camOk === false ? "카메라 연결 끊김(2초 이상 갱신 없음)" : "카메라 상태 확인 중...";
+    videoPlaceholder.style.display = camOk === true ? "none" : "block";
+  }
+
+  function renderDetail(payload) {
+    const state = payload.state || "IDLE";
+    detailBadge.textContent = state;
+    detailBadge.style.background = `var(${STATE_CLASS_VAR[state] || "--state-idle"})`;
+    detailBadge.style.color = (state === "IDLE" || state === "STOPPING") ? "#111" : "#06210f";
+
+    const counts = payload.counts || {};
+    const total = typeof payload.total === "number" ? payload.total : 0;
+    detailTotal.textContent = `총 ${total}건 · 실시간`;
+    detailTotal.appendChild(autoReturnNote);
+
+    // 막대 최댓값 -- 고정 3, 넘으면 그 값까지 자동 확장 (v67 2-4절)
+    const allCounts = [...NORMAL_BINS, ...HANDOFF_BINS, ...REVIEW_BINS].map((b) => counts[b.key] || 0);
+    const barMax = Math.max(BAR_MAX_FLOOR, ...allCounts);
+
+    renderBarGroup(normalBars, NORMAL_BINS, counts, barMax, "normal");
+    renderBarGroup(handoffBars, HANDOFF_BINS, counts, barMax, "handoff");
+    renderBarGroup(reviewBars, REVIEW_BINS, counts, barMax, "review");
+
+    renderStage(payload.stage || "idle");
+
+    const last = payload.last;
+    if (last) {
+      const destLabel = last.dest || "(처리 중)";
+      const weightPart = (last.weight_g != null) ? ` · 무게 ${last.weight_g} g` : "";
+      const reasonPart = last.reason ? ` (${last.reason === "over_weight" ? "무게 초과" : last.reason})` : "";
+      lastResultText.textContent = `${last.item} → ${destLabel}${weightPart}${reasonPart}`;
+    } else {
+      lastResultText.textContent = "마지막 처리 결과 없음";
+    }
+
+    renderHealth(payload.health || {});
+  }
+
+  function renderBarGroup(container, bins, counts, barMax, kind) {
+    container.innerHTML = "";
+    for (const bin of bins) {
+      const count = counts[bin.key] || 0;
+      const pct = Math.min(100, Math.round((count / barMax) * 100));
+      const row = document.createElement("div");
+      row.className = "bar-row";
+      row.innerHTML = `
+        <div class="bar-label">${bin.label}</div>
+        <div class="bar-track"><div class="bar-fill ${kind}" style="width:${pct}%"></div></div>
+        <div class="bar-count">${count}</div>
+      `;
+      container.appendChild(row);
+    }
+  }
+
+  function renderStage(stage) {
+    stageFlow.innerHTML = "";
+    for (const s of STAGE_ORDER) {
+      const chip = document.createElement("div");
+      chip.className = "stage-chip" + (s === stage ? " active" : "");
+      chip.textContent = STAGE_LABEL[s] || s;
+      stageFlow.appendChild(chip);
+    }
+  }
+
+  function renderHealth(health) {
+    const rows = [
+      ["camera", "카메라"], ["robot", "로봇"], ["conveyor", "컨베이어"],
+      ["stt", "STT"], ["tts", "TTS"],
+    ];
+    healthList.innerHTML = "";
+    for (const [key, label] of rows) {
+      const v = health[key];
+      const cls = v === true ? "ok" : v === false ? "bad" : "na";
+      const txt = v === true ? "정상" : v === false ? "이상" : "해당없음";
+      const row = document.createElement("div");
+      row.className = "health-row";
+      row.innerHTML = `<span class="dot ${cls}"></span><span>${label}: ${txt}</span>`;
+      healthList.appendChild(row);
+    }
+  }
+
+  // ---------------------------------------------------------------
+  // 경과 시간 / 갱신 정지 표시 -- 0.5초마다 로컬 시계로 계산.
+  // 블로킹 구간(v65 2-2절)에는 서버가 새 메시지를 못 보내므로,
+  // 이 타이머가 "얼마나 멈춰 있는지"를 클라이언트에서 직접 잰다.
+  // ---------------------------------------------------------------
+  setInterval(() => {
+    const staleSec = (Date.now() - lastMsgWallClock) / 1000;
+    if (busySinceWallClock !== null) {
+      const busySec = Math.round((Date.now() - busySinceWallClock) / 1000);
+      elapsedText.textContent = `처리 중 · ${busySec}초 경과`;
+    } else if (staleSec > 3) {
+      elapsedText.textContent = `갱신 없음 · ${Math.round(staleSec)}초`;
+    } else {
+      elapsedText.textContent = "";
+    }
+  }, 500);
+
+  // ---------------------------------------------------------------
+  // 화면 전환 (v67 3-1절: 버튼 + 30초 자동 복귀)
+  // ---------------------------------------------------------------
+  let autoReturnTimer = null;
+  let autoReturnDeadline = null;
+
+  function showDetail() {
+    mainScreen.classList.add("hidden");
+    detailScreen.classList.remove("hidden");
+    if (latestPayload) renderDetail(latestPayload);
+    armAutoReturn();
+  }
+  function showMain() {
+    detailScreen.classList.add("hidden");
+    mainScreen.classList.remove("hidden");
+    disarmAutoReturn();
+  }
+  function armAutoReturn() {
+    disarmAutoReturn();
+    autoReturnDeadline = Date.now() + AUTO_RETURN_SEC * 1000;
+    autoReturnTimer = setInterval(() => {
+      const remain = Math.ceil((autoReturnDeadline - Date.now()) / 1000);
+      if (remain <= 0) { showMain(); return; }
+      autoReturnNote.textContent = ` · ${remain}초 후 메인으로 복귀`;
+    }, 500);
+  }
+  function disarmAutoReturn() {
+    if (autoReturnTimer) clearInterval(autoReturnTimer);
+    autoReturnTimer = null;
+    autoReturnNote.textContent = "";
+  }
+  // 상세 화면에서 조작이 있으면 자동복귀 타이머 리셋
+  detailScreen.addEventListener("click", () => { if (autoReturnTimer) armAutoReturn(); });
+
+  el("detailBtn").addEventListener("click", showDetail);
+  el("backBtn").addEventListener("click", showMain);
+
+  // ---------------------------------------------------------------
+  // 비상정지 (v67 응답/v68 참고) -- 컨베이어는 확실히 즉시 정지,
+  // 로봇은 "전달만" 되고 즉시 정지는 미확인이라고 배너에 명시한다.
+  // ---------------------------------------------------------------
+  function triggerEstop() {
+    estopBanner.classList.remove("hidden");
+    setTimeout(() => estopBanner.classList.add("hidden"), 6000);
+
+    conveyorStopSrv.callService(new ROSLIB.ServiceRequest({}), (res) => {
+      console.log("[ESTOP] conveyor/stop ->", res);
+    }, (err) => {
+      console.error("[ESTOP] conveyor/stop 실패:", err);
+    });
+
+    moveStopSrv.callService(new ROSLIB.ServiceRequest({ stop_mode: 1 }), (res) => {
+      console.log("[ESTOP] move_stop ->", res);
+    }, (err) => {
+      console.error("[ESTOP] move_stop 실패(로봇 미연결이거나 서비스명 다를 수 있음):", err);
+    });
+  }
+  el("estopMain").addEventListener("click", triggerEstop);
+  el("estopDetail").addEventListener("click", triggerEstop);
+
+  el("btnStart").addEventListener("click", () => sendVoiceCommand("START"));
+  el("btnPause").addEventListener("click", () => sendVoiceCommand("PAUSE"));
+  el("btnResume").addEventListener("click", () => sendVoiceCommand("RESUME"));
+  el("btnStop").addEventListener("click", () => sendVoiceCommand("STOP"));
+
+})();
+</script>
+</body>
+</html>
