@@ -490,6 +490,39 @@ class TrackingNode(Node):
         self.get_logger().debug(f"[MATCH] class={class_name} -> new track ({reason})")
         return None
 
+    def _apply_place_pose_override(
+        self, item_key: str, bin_name: str, hover_pose: list, place_pose: list
+    ) -> tuple[list, list]:
+        """[완료 — 8일차, v87 회신] `config/item_routing.yaml`의
+        `place_pose_override[item_key][bin_name]`을 조회해 rx/ry/rz만
+        덮어쓴다(x/y/z는 그 통의 원래 좌표 그대로) -- 오버라이드가
+        없으면 입력을 그대로 반환(기존 동작 무변화). **품목별이
+        아니라 (품목, 통)별**인 이유: `can`처럼 정상 경로(can_bin)와
+        무게초과 경로(review_bin)로 같은 품목이 다른 통에 갈 수
+        있어서, 품목 하나에 자세 하나로는 부족하다.
+
+        오버라이드 dict에 rx/ry/rz 중 없는 축은 파지 자세
+        (`motion_timing.yaml`의 belt_hover_rx/ry/rz)를 기본값으로
+        쓴다 -- "회전 없이 파지 각도 그대로 넣는다"는 의도를
+        축 단위로 부분 지정할 수 있게 하기 위함.
+        """
+        override = self._item_routing.get("place_pose_override", {}).get(
+            item_key, {}
+        ).get(bin_name)
+        if not override:
+            return hover_pose, place_pose
+
+        mt = self._motion_timing
+        rpy = [
+            override.get("rx", mt["belt_hover_rx"]),
+            override.get("ry", mt["belt_hover_ry"]),
+            override.get("rz", mt["belt_hover_rz"]),
+        ]
+        self.get_logger().info(
+            f"[PLACE] place_pose_override 적용: item={item_key} bin={bin_name} rpy={rpy}"
+        )
+        return hover_pose[:3] + rpy, place_pose[:3] + rpy
+
     def _say(self, text: str) -> None:
         """TTS 발행 + 콘솔/로그 폴백(v56 요청3) -- TTS가 아직 팀원 쪽과
         최종 연결 전이라 로그로도 항상 확인 가능하게 한다. 팀원 쪽
@@ -1150,6 +1183,9 @@ class TrackingNode(Node):
         bin_name = forced_bin if forced_bin is not None else route["bin"]
         hover_pose = get_bin_pose(bin_name, "hover")
         place_pose = get_bin_pose(bin_name, "place")
+        hover_pose, place_pose = self._apply_place_pose_override(
+            item_key, bin_name, hover_pose, place_pose
+        )
 
         self.get_logger().info(f"[PLACE] {item_key} -> {bin_name}: move to bin hover")
         self._call_move_line(hover_pose, h_vel, h_vel, mode=0)
@@ -1330,7 +1366,7 @@ class TrackingNode(Node):
             f"{[round(v, 1) for v in start_pos[:3]]}"
         )
 
-        pull_speed_mm_per_s = cfg.get("pull_speed_mm_per_s", 15.0)
+        pull_speed_mm_per_s = cfg.get("pull_speed_mm_per_s", 3.0)
         pull_speed_consecutive = cfg.get("pull_speed_consecutive", 2)
 
         released = False
@@ -1350,11 +1386,26 @@ class TrackingNode(Node):
             ) ** 0.5
             speed_horizontal = step_horizontal / dt if dt > 0 else 0.0
 
+            # [버그 발견·수정 — 8일차, v87 회신] 누적변위(AND 조건의
+            # 절반)가 3D 전체(dx,dy,dz)라서 처짐(-Z)만으로도 이미
+            # 10mm를 넘어버렸다(1회차 실측: 3D 누적 19.4mm, 거의
+            # 전부 -Z). 즉 AND가 사실상 속도 조건 하나에만 기대는
+            # 상태였다. **수정**: 아래쪽(-Z, 처짐 방향)만 누적에서
+            # 제외하고 수평+위쪽(+Z, 들어올림)은 그대로 포함한다 --
+            # 사람이 받을 때는 자기 쪽으로 당기거나(수평) 들어
+            # 올리지(+Z), 아래로 누르진 않는다는 물리적 근거.
+            dz_total = cur_pos[2] - start_pos[2]
+            dz_effective = max(dz_total, 0.0)  # 처짐(음수)은 0 취급, 들어올림(양수)은 그대로
             total_disp = (
                 (cur_pos[0] - start_pos[0]) ** 2
                 + (cur_pos[1] - start_pos[1]) ** 2
-                + (cur_pos[2] - start_pos[2]) ** 2
+                + dz_effective ** 2
             ) ** 0.5
+            total_disp_3d = (
+                (cur_pos[0] - start_pos[0]) ** 2
+                + (cur_pos[1] - start_pos[1]) ** 2
+                + dz_total ** 2
+            ) ** 0.5  # 로그 참고용(수정 전 값과 비교하기 위해 같이 남김)
             step_vertical = cur_pos[2] - prev_pos[2]  # 로그 참고용(부호로 처짐/들어올림 구분)
 
             is_fast = speed_horizontal >= pull_speed_mm_per_s
@@ -1362,12 +1413,14 @@ class TrackingNode(Node):
 
             # [v76 요청2] 다음 실물 테스트에서 처짐/당김 속도 분포를
             # 실측할 수 있도록 매 폴링 상세 로그를 남긴다.
+            # total_disp_3d(수정 전 정의)도 같이 남겨서 v87 수정
+            # 전후 값을 로그만으로 비교할 수 있게 한다.
             self.get_logger().info(
                 "[HANDOFF] poll elapsed=%.2fs pos=(%.1f,%.1f,%.1f) "
-                "total_disp=%.1fmm step_horiz=%.1fmm step_vert=%+.1fmm "
-                "dt=%.2fs speed_horiz=%.1fmm/s fast_count=%d/%d"
+                "total_disp=%.1fmm total_disp_3d=%.1fmm step_horiz=%.1fmm "
+                "step_vert=%+.1fmm dt=%.2fs speed_horiz=%.1fmm/s fast_count=%d/%d"
                 % (now_t - start_t, cur_pos[0], cur_pos[1], cur_pos[2],
-                   total_disp, step_horizontal, step_vertical, dt,
+                   total_disp, total_disp_3d, step_horizontal, step_vertical, dt,
                    speed_horizontal, fast_count, pull_speed_consecutive)
             )
 
@@ -1425,32 +1478,29 @@ class TrackingNode(Node):
 
         h_vel = [mt["horizontal_vel"], mt["horizontal_acc"]]
         bin_name = "review_bin"
-        # [버그 발견·수정 — 8일차, 관제PC 실물+사용자 육안 확인]
-        # `get_bin_pose`가 주는 자세(rx/ry/rz)를 그대로 쓰면 파지
-        # 자세 대비 67.33° 돌아간 채로 들어가는데, 라벨 페트병은
-        # 그 자세에서 길이가 review_bin 가로폭을 넘어 안 들어간다
-        # (로그는 도달 확인만 보므로 정상 완료로 보였음 -- 실제로는
-        # 그리퍼가 열렸을 때 통에 안 들어가고 걸치거나 떨어짐).
-        # **[팀결정 — 사용자 확인] 무게초과 캔/plastic_bag은 기존
-        # 회전 배치 그대로 두고(원통형이라 자세 무관, 비닐도 문제
-        # 없음 확인됨), pet_labeled(이 함수, 핸드오버 타임아웃
-        # 경로에서만 review_bin에 감)만 파지 각도 그대로 회전 없이
-        # 진입하도록 예외 처리한다.** `_place_item`(1151~1152행,
-        # 무게초과 캔/비닐이 쓰는 일반 배치 경로)은 건드리지 않음
-        # -- review_bin을 쓰는 경로가 이 함수뿐이라 별도 config
-        # 스키마 없이 여기서만 자세를 덮어쓰는 것으로 충분하다.
-        # x/y/z(통 위치)는 그대로 쓰고 rx/ry/rz만 파지 때 쓴 값으로
-        # 교체한다.
-        # [전제, 미검증] 이 (좌표, 자세) 조합은 한 번도 실행된 적
-        # 없다 -- 실물 투입 전 반드시 빈 그리퍼로 먼저 이동시켜
-        # 도달성/그리퍼-통벽 간섭을 확인할 것(4일차 "상승 없이
-        # 이동하면 그리퍼가 통을 밀어버린" 사고 전례 있음,
-        # obstacles.yaml의 review_bin은 미실측 상태).
-        bin_xyz_hover = get_bin_pose(bin_name, "hover")[:3]
-        bin_xyz_place = get_bin_pose(bin_name, "place")[:3]
-        pick_rpy = [mt["belt_hover_rx"], mt["belt_hover_ry"], mt["belt_hover_rz"]]
-        hover_pose = bin_xyz_hover + pick_rpy
-        place_pose = bin_xyz_place + pick_rpy
+        # [버그 발견·수정 — 8일차, 관제PC 실물+사용자 육안 확인,
+        # v87 회신] `get_bin_pose`가 주는 자세(rx/ry/rz)를 그대로
+        # 쓰면 파지 자세 대비 67.33° 돌아간 채로 들어가는데, 라벨
+        # 페트병은 그 자세에서 길이가 review_bin 가로폭을 넘어
+        # 안 들어간다(로그는 도달 확인만 보므로 정상 완료로 보였음
+        # -- 실제로는 그리퍼가 열렸을 때 통에 안 들어가고 걸치거나
+        # 떨어짐). **[팀결정 — 사용자 확인 + v87] 무게초과 캔/
+        # plastic_bag은 기존 회전 배치 그대로 두고(원통형이라 자세
+        # 무관, 비닐도 문제 없음 확인됨), pet_labeled만 파지 각도
+        # 그대로 진입하도록 예외 처리한다.** 이제 `_apply_place_
+        # pose_override`(범용, `_place_item`도 같이 씀)로 처리 --
+        # `config/item_routing.yaml`의 `place_pose_override.
+        # pet_labeled.review_bin`에 설정돼 있음. [전제, 미검증]
+        # 이 (좌표, 자세) 조합은 한 번도 실행된 적 없다 -- 실물
+        # 투입 전 반드시 빈 그리퍼로 먼저 이동시켜 도달성/그리퍼-
+        # 통벽 간섭을 확인할 것(4일차 "상승 없이 이동하면 그리퍼가
+        # 통을 밀어버린" 사고 전례 있는 구역, obstacles.yaml의
+        # review_bin은 미실측 상태).
+        hover_pose = get_bin_pose(bin_name, "hover")
+        place_pose = get_bin_pose(bin_name, "place")
+        hover_pose, place_pose = self._apply_place_pose_override(
+            item_key, bin_name, hover_pose, place_pose
+        )
 
         self.get_logger().info(f"[HANDOFF] {item_key} -> {bin_name} (timeout): move to bin hover")
         self._call_move_line(hover_pose, h_vel, h_vel, mode=0)
