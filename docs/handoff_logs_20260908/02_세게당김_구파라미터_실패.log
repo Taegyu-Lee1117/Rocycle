@@ -1,0 +1,231 @@
+[INFO] [1788857645.587174410] [tracking_pick_node]: tracking_node up. calibration ready=True dry_run=False
+[INFO] [1788857645.668177291] [tracking_pick_node]: class=pet_labeled conf=0.65 anchor=(229.7,620.1) kf_x=243.4 kf_vx=0.00 pending=1 confirmed=False holding=False
+[INFO] [1788857645.798637030] [tracking_pick_node]: class=pet_labeled conf=0.65 anchor=(231.0,633.4) kf_x=245.3 kf_vx=0.25 pending=2 confirmed=False holding=False
+[INFO] [1788857645.937008717] [tracking_pick_node]: class=pet_labeled conf=0.67 anchor=(229.8,619.5) kf_x=243.6 kf_vx=-11.49 pending=3 confirmed=False holding=False
+[INFO] [1788857646.073891576] [tracking_pick_node]: class=pet_labeled conf=0.67 anchor=(231.0,633.4) kf_x=244.7 kf_vx=-0.04 pending=4 confirmed=False holding=False
+[INFO] [1788857646.197993242] [tracking_pick_node]: class=pet_labeled conf=0.63 anchor=(229.7,619.3) kf_x=243.8 kf_vx=-2.98 pending=5 confirmed=False holding=False
+[INFO] [1788857646.333282564] [tracking_pick_node]: class=pet_labeled conf=0.65 anchor=(231.0,633.6) kf_x=244.5 kf_vx=-0.04 pending=6 confirmed=False holding=False
+[INFO] [1788857646.465888233] [tracking_pick_node]: class=pet_labeled conf=0.64 anchor=(230.8,633.7) kf_x=244.9 kf_vx=0.73 pending=7 confirmed=False holding=False
+[INFO] [1788857646.605367177] [tracking_pick_node]: class=pet_labeled conf=0.67 anchor=(230.9,633.3) kf_x=245.1 kf_vx=0.93 pending=8 confirmed=False holding=False
+[INFO] [1788857646.736632427] [tracking_pick_node]: class=pet_labeled conf=0.65 anchor=(231.0,633.6) kf_x=245.3 kf_vx=1.00 pending=9 confirmed=True holding=False
+[INFO] [1788857646.873836859] [tracking_pick_node]: class=pet_labeled conf=0.66 anchor=(231.0,633.4) kf_x=245.4 kf_vx=0.97 pending=10 confirmed=True holding=False
+[INFO] [1788857647.000131567] [tracking_pick_node]: class=pet_labeled conf=0.66 anchor=(231.0,633.2) kf_x=245.5 kf_vx=0.88 pending=11 confirmed=True holding=False
+[INFO] [1788857647.135279319] [tracking_pick_node]: class=pet_labeled conf=0.65 anchor=(231.1,633.5) kf_x=245.5 kf_vx=0.82 pending=12 confirmed=True holding=False
+[INFO] [1788857647.266162296] [tracking_pick_node]: class=pet_labeled conf=0.67 anchor=(231.1,633.6) kf_x=245.6 kf_vx=0.76 pending=13 confirmed=True holding=False
+[INFO] [1788857647.399232328] [tracking_pick_node]: class=pet_labeled conf=0.60 anchor=(229.5,620.0) kf_x=245.0 kf_vx=0.18 pending=14 confirmed=True holding=False
+[INFO] [1788857647.533462297] [tracking_pick_node]: class=pet_labeled conf=0.67 anchor=(231.1,633.5) kf_x=245.1 kf_vx=0.26 pending=15 confirmed=True holding=False
+[INFO] [1788857647.667833192] [tracking_pick_node]: class=pet_labeled conf=0.67 anchor=(231.0,633.6) kf_x=245.2 kf_vx=0.29 pending=16 confirmed=True holding=False
+[INFO] [1788857647.798069545] [tracking_pick_node]: class=pet_labeled conf=0.64 anchor=(229.7,619.3) kf_x=244.8 kf_vx=-0.03 pending=17 confirmed=True holding=False
+[INFO] [1788857647.933829850] [tracking_pick_node]: class=pet_labeled conf=0.69 anchor=(229.6,619.5) kf_x=244.5 kf_vx=-0.25 pending=18 confirmed=True holding=False
+[INFO] [1788857648.066958378] [tracking_pick_node]: class=pet_labeled conf=0.68 anchor=(231.0,633.6) kf_x=244.6 kf_vx=-0.13 pending=19 confirmed=True holding=False
+[INFO] [1788857648.197792881] [tracking_pick_node]: class=pet_labeled conf=0.66 anchor=(231.1,633.6) kf_x=244.8 kf_vx=-0.04 pending=20 confirmed=True holding=False
+[INFO] [1788857648.335853032] [tracking_pick_node]: class=pet_labeled conf=0.66 anchor=(231.0,633.5) kf_x=244.9 kf_vx=0.03 pending=21 confirmed=True holding=False
+[INFO] [1788857648.467679713] [tracking_pick_node]: class=pet_labeled conf=0.66 anchor=(231.0,633.8) kf_x=245.0 kf_vx=0.08 pending=22 confirmed=True holding=False
+[INFO] [1788857648.598255200] [tracking_pick_node]: class=pet_labeled conf=0.66 anchor=(231.0,633.7) kf_x=245.0 kf_vx=0.11 pending=23 confirmed=True holding=False
+[INFO] [1788857648.733379141] [tracking_pick_node]: class=pet_labeled conf=0.65 anchor=(229.7,620.1) kf_x=244.8 kf_vx=-0.03 pending=24 confirmed=True holding=False
+[INFO] [1788857648.868828922] [tracking_pick_node]: class=pet_labeled conf=0.67 anchor=(229.6,619.1) kf_x=244.5 kf_vx=-0.15 pending=25 confirmed=True holding=False
+[INFO] [1788857648.998898878] [tracking_pick_node]: class=pet_labeled conf=0.64 anchor=(231.1,633.4) kf_x=244.7 kf_vx=-0.08 pending=26 confirmed=True holding=False
+[INFO] [1788857649.134019136] [tracking_pick_node]: class=pet_labeled conf=0.69 anchor=(231.0,633.4) kf_x=244.8 kf_vx=-0.04 pending=27 confirmed=True holding=False
+[INFO] [1788857649.265665966] [tracking_pick_node]: class=pet_labeled conf=0.66 anchor=(229.8,619.3) kf_x=244.6 kf_vx=-0.12 pending=28 confirmed=True holding=False
+[INFO] [1788857649.399005790] [tracking_pick_node]: class=pet_labeled conf=0.64 anchor=(230.9,633.6) kf_x=244.6 kf_vx=-0.08 pending=29 confirmed=True holding=False
+[INFO] [1788857649.533956947] [tracking_pick_node]: class=pet_labeled conf=0.68 anchor=(231.0,633.5) kf_x=244.7 kf_vx=-0.04 pending=30 confirmed=True holding=False
+[INFO] [1788857649.668295194] [tracking_pick_node]: class=pet_labeled conf=0.67 anchor=(229.7,620.2) kf_x=244.6 kf_vx=-0.10 pending=31 confirmed=True holding=False
+[INFO] [1788857649.798076206] [tracking_pick_node]: class=pet_labeled conf=0.68 anchor=(231.1,633.2) kf_x=244.6 kf_vx=-0.06 pending=32 confirmed=True holding=False
+[INFO] [1788857649.940339535] [tracking_pick_node]: class=pet_labeled conf=0.67 anchor=(231.0,633.5) kf_x=244.7 kf_vx=-0.03 pending=33 confirmed=True holding=False
+[INFO] [1788857650.066317411] [tracking_pick_node]: class=pet_labeled conf=0.66 anchor=(231.0,633.5) kf_x=244.8 kf_vx=0.00 pending=34 confirmed=True holding=False
+[INFO] [1788857650.199878951] [tracking_pick_node]: class=pet_labeled conf=0.68 anchor=(231.1,633.3) kf_x=244.9 kf_vx=0.03 pending=35 confirmed=True holding=False
+[INFO] [1788857650.334289373] [tracking_pick_node]: class=pet_labeled conf=0.67 anchor=(229.7,620.1) kf_x=244.7 kf_vx=-0.04 pending=36 confirmed=True holding=False
+[INFO] [1788857650.466510457] [tracking_pick_node]: class=pet_labeled conf=0.64 anchor=(229.7,619.9) kf_x=244.5 kf_vx=-0.09 pending=37 confirmed=True holding=False
+[INFO] [1788857650.598559310] [tracking_pick_node]: class=pet_labeled conf=0.65 anchor=(231.0,633.3) kf_x=244.6 kf_vx=-0.06 pending=38 confirmed=True holding=False
+[INFO] [1788857650.738781892] [tracking_pick_node]: class=pet_labeled conf=0.65 anchor=(231.1,633.4) kf_x=244.7 kf_vx=-0.03 pending=39 confirmed=True holding=False
+[INFO] [1788857650.866333902] [tracking_pick_node]: class=pet_labeled conf=0.63 anchor=(229.7,619.8) kf_x=244.6 kf_vx=-0.08 pending=40 confirmed=True holding=False
+[INFO] [1788857650.997558990] [tracking_pick_node]: class=pet_labeled conf=0.66 anchor=(229.7,620.0) kf_x=244.4 kf_vx=-0.12 pending=41 confirmed=True holding=False
+[INFO] [1788857651.134728815] [tracking_pick_node]: class=pet_labeled conf=0.69 anchor=(231.2,633.3) kf_x=244.5 kf_vx=-0.08 pending=42 confirmed=True holding=False
+[INFO] [1788857651.265588981] [tracking_pick_node]: class=pet_labeled conf=0.64 anchor=(231.0,633.8) kf_x=244.6 kf_vx=-0.05 pending=43 confirmed=True holding=False
+[INFO] [1788857651.403164376] [tracking_pick_node]: class=pet_labeled conf=0.64 anchor=(230.9,633.6) kf_x=244.7 kf_vx=-0.03 pending=44 confirmed=True holding=False
+[INFO] [1788857651.537031755] [tracking_pick_node]: class=pet_labeled conf=0.63 anchor=(231.1,633.2) kf_x=244.7 kf_vx=-0.00 pending=45 confirmed=True holding=False
+[INFO] [1788857651.669558233] [tracking_pick_node]: class=pet_labeled conf=0.66 anchor=(231.0,633.5) kf_x=244.8 kf_vx=0.01 pending=46 confirmed=True holding=False
+[INFO] [1788857651.800022921] [tracking_pick_node]: class=pet_labeled conf=0.64 anchor=(230.9,633.6) kf_x=244.8 kf_vx=0.03 pending=47 confirmed=True holding=False
+[INFO] [1788857651.933115357] [tracking_pick_node]: class=pet_labeled conf=0.63 anchor=(231.0,633.5) kf_x=244.9 kf_vx=0.05 pending=48 confirmed=True holding=False
+[INFO] [1788857652.066848290] [tracking_pick_node]: class=pet_labeled conf=0.63 anchor=(230.9,633.9) kf_x=244.9 kf_vx=0.06 pending=49 confirmed=True holding=False
+[INFO] [1788857652.208642133] [tracking_pick_node]: class=pet_labeled conf=0.63 anchor=(231.0,633.7) kf_x=245.0 kf_vx=0.07 pending=50 confirmed=True holding=False
+[INFO] [1788857652.336591720] [tracking_pick_node]: class=pet_labeled conf=0.66 anchor=(229.8,619.5) kf_x=244.8 kf_vx=0.03 pending=51 confirmed=True holding=False
+[INFO] [1788857652.468375223] [tracking_pick_node]: class=pet_labeled conf=0.67 anchor=(231.0,633.6) kf_x=244.9 kf_vx=0.04 pending=52 confirmed=True holding=False
+[INFO] [1788857652.600504029] [tracking_pick_node]: class=pet_labeled conf=0.65 anchor=(231.1,633.8) kf_x=244.9 kf_vx=0.06 pending=53 confirmed=True holding=False
+[INFO] [1788857652.735728392] [tracking_pick_node]: class=pet_labeled conf=0.66 anchor=(231.1,633.5) kf_x=245.0 kf_vx=0.07 pending=54 confirmed=True holding=False
+[INFO] [1788857652.865600899] [tracking_pick_node]: class=pet_labeled conf=0.65 anchor=(231.0,633.5) kf_x=245.0 kf_vx=0.08 pending=55 confirmed=True holding=False
+[INFO] [1788857653.000925017] [tracking_pick_node]: class=pet_labeled conf=0.66 anchor=(229.5,619.1) kf_x=244.9 kf_vx=0.03 pending=56 confirmed=True holding=False
+[INFO] [1788857653.134999708] [tracking_pick_node]: class=pet_labeled conf=0.67 anchor=(229.7,619.5) kf_x=244.8 kf_vx=-0.02 pending=57 confirmed=True holding=False
+[INFO] [1788857653.266523621] [tracking_pick_node]: class=pet_labeled conf=0.65 anchor=(231.2,633.5) kf_x=244.8 kf_vx=0.00 pending=58 confirmed=True holding=False
+[INFO] [1788857653.399428038] [tracking_pick_node]: class=pet_labeled conf=0.64 anchor=(229.7,620.2) kf_x=244.7 kf_vx=-0.04 pending=59 confirmed=True holding=False
+[INFO] [1788857653.534215753] [tracking_pick_node]: class=pet_labeled conf=0.63 anchor=(229.7,620.3) kf_x=244.6 kf_vx=-0.07 pending=60 confirmed=True holding=False
+[INFO] [1788857653.666326774] [tracking_pick_node]: class=pet_labeled conf=0.65 anchor=(231.1,633.4) kf_x=244.6 kf_vx=-0.05 pending=61 confirmed=True holding=False
+[INFO] [1788857653.798294034] [tracking_pick_node]: class=pet_labeled conf=0.66 anchor=(230.9,633.4) kf_x=244.7 kf_vx=-0.03 pending=62 confirmed=True holding=False
+[INFO] [1788857653.934634714] [tracking_pick_node]: class=pet_labeled conf=0.67 anchor=(231.1,633.6) kf_x=244.7 kf_vx=-0.01 pending=63 confirmed=True holding=False
+[INFO] [1788857654.066273041] [tracking_pick_node]: class=pet_labeled conf=0.67 anchor=(229.7,620.4) kf_x=244.6 kf_vx=-0.05 pending=64 confirmed=True holding=False
+[INFO] [1788857654.198663756] [tracking_pick_node]: class=pet_labeled conf=0.64 anchor=(229.7,619.7) kf_x=244.5 kf_vx=-0.08 pending=65 confirmed=True holding=False
+[INFO] [1788857654.332852321] [tracking_pick_node]: class=pet_labeled conf=0.65 anchor=(229.6,619.7) kf_x=244.4 kf_vx=-0.12 pending=66 confirmed=True holding=False
+[INFO] [1788857654.470957151] [tracking_pick_node]: class=pet_labeled conf=0.65 anchor=(231.0,633.4) kf_x=244.5 kf_vx=-0.09 pending=67 confirmed=True holding=False
+[INFO] [1788857654.600432219] [tracking_pick_node]: class=pet_labeled conf=0.66 anchor=(231.1,633.4) kf_x=244.5 kf_vx=-0.06 pending=68 confirmed=True holding=False
+[INFO] [1788857654.731783991] [tracking_pick_node]: class=pet_labeled conf=0.69 anchor=(231.0,633.6) kf_x=244.6 kf_vx=-0.04 pending=69 confirmed=True holding=False
+[INFO] [1788857654.865109784] [tracking_pick_node]: class=pet_labeled conf=0.69 anchor=(230.9,633.4) kf_x=244.7 kf_vx=-0.02 pending=70 confirmed=True holding=False
+[INFO] [1788857654.998007121] [tracking_pick_node]: class=pet_labeled conf=0.67 anchor=(231.0,633.4) kf_x=244.7 kf_vx=-0.00 pending=71 confirmed=True holding=False
+[INFO] [1788857655.131659267] [tracking_pick_node]: class=pet_labeled conf=0.65 anchor=(231.1,633.5) kf_x=244.8 kf_vx=0.02 pending=72 confirmed=True holding=False
+[INFO] [1788857655.265857513] [tracking_pick_node]: class=pet_labeled conf=0.68 anchor=(231.0,633.5) kf_x=244.8 kf_vx=0.04 pending=73 confirmed=True holding=False
+[INFO] [1788857655.400072134] [tracking_pick_node]: class=pet_labeled conf=0.62 anchor=(229.7,620.0) kf_x=244.7 kf_vx=-0.01 pending=74 confirmed=True holding=False
+[INFO] [1788857655.532378766] [tracking_pick_node]: class=pet_labeled conf=0.64 anchor=(229.4,619.5) kf_x=244.6 kf_vx=-0.05 pending=75 confirmed=True holding=False
+[INFO] [1788857655.666807298] [tracking_pick_node]: class=pet_labeled conf=0.64 anchor=(231.0,633.6) kf_x=244.6 kf_vx=-0.03 pending=76 confirmed=True holding=False
+[INFO] [1788857655.802230790] [tracking_pick_node]: class=pet_labeled conf=0.65 anchor=(231.1,633.4) kf_x=244.7 kf_vx=-0.00 pending=77 confirmed=True holding=False
+[INFO] [1788857655.932739775] [tracking_pick_node]: class=pet_labeled conf=0.65 anchor=(231.0,633.4) kf_x=244.8 kf_vx=0.01 pending=78 confirmed=True holding=False
+[INFO] [1788857656.068164040] [tracking_pick_node]: class=pet_labeled conf=0.66 anchor=(231.0,633.5) kf_x=244.8 kf_vx=0.03 pending=79 confirmed=True holding=False
+[INFO] [1788857656.198422304] [tracking_pick_node]: class=pet_labeled conf=0.68 anchor=(231.0,633.6) kf_x=244.9 kf_vx=0.05 pending=80 confirmed=True holding=False
+[INFO] [1788857656.329761162] [tracking_pick_node]: class=pet_labeled conf=0.61 anchor=(231.0,633.5) kf_x=244.9 kf_vx=0.06 pending=81 confirmed=True holding=False
+[INFO] [1788857656.465042666] [tracking_pick_node]: class=pet_labeled conf=0.65 anchor=(231.1,633.5) kf_x=245.0 kf_vx=0.08 pending=82 confirmed=True holding=False
+[INFO] [1788857656.598678495] [tracking_pick_node]: class=pet_labeled conf=0.65 anchor=(230.9,633.3) kf_x=245.0 kf_vx=0.08 pending=83 confirmed=True holding=False
+[INFO] [1788857656.730207945] [tracking_pick_node]: class=pet_labeled conf=0.65 anchor=(229.6,619.1) kf_x=244.9 kf_vx=0.03 pending=84 confirmed=True holding=False
+[INFO] [1788857656.867833501] [tracking_pick_node]: class=pet_labeled conf=0.64 anchor=(231.0,633.6) kf_x=244.9 kf_vx=0.05 pending=85 confirmed=True holding=False
+[INFO] [1788857656.998955906] [tracking_pick_node]: class=pet_labeled conf=0.64 anchor=(231.1,633.4) kf_x=245.0 kf_vx=0.06 pending=86 confirmed=True holding=False
+[INFO] [1788857657.130435757] [tracking_pick_node]: class=pet_labeled conf=0.65 anchor=(231.1,633.6) kf_x=245.0 kf_vx=0.07 pending=87 confirmed=True holding=False
+[INFO] [1788857657.273225429] [tracking_pick_node]: class=pet_labeled conf=0.66 anchor=(230.9,633.6) kf_x=245.0 kf_vx=0.08 pending=88 confirmed=True holding=False
+[INFO] [1788857657.398749773] [tracking_pick_node]: class=pet_labeled conf=0.65 anchor=(231.0,633.4) kf_x=245.1 kf_vx=0.09 pending=89 confirmed=True holding=False
+[INFO] [1788857657.533392230] [tracking_pick_node]: class=pet_labeled conf=0.60 anchor=(231.1,633.2) kf_x=245.1 kf_vx=0.10 pending=90 confirmed=True holding=False
+[INFO] [1788857657.671061554] [tracking_pick_node]: class=pet_labeled conf=0.64 anchor=(230.9,633.7) kf_x=245.1 kf_vx=0.11 pending=91 confirmed=True holding=False
+[INFO] [1788857657.797724524] [tracking_pick_node]: class=pet_labeled conf=0.66 anchor=(231.0,633.5) kf_x=245.2 kf_vx=0.11 pending=92 confirmed=True holding=False
+[INFO] [1788857657.930002380] [tracking_pick_node]: class=pet_labeled conf=0.69 anchor=(231.1,633.7) kf_x=245.2 kf_vx=0.12 pending=93 confirmed=True holding=False
+[INFO] [1788857658.068010692] [tracking_pick_node]: class=pet_labeled conf=0.65 anchor=(229.7,619.8) kf_x=245.1 kf_vx=0.07 pending=94 confirmed=True holding=False
+[INFO] [1788857658.198115630] [tracking_pick_node]: class=pet_labeled conf=0.67 anchor=(229.7,619.5) kf_x=244.9 kf_vx=0.02 pending=95 confirmed=True holding=False
+[INFO] [1788857658.330683652] [tracking_pick_node]: class=pet_labeled conf=0.65 anchor=(229.5,619.5) kf_x=244.8 kf_vx=-0.03 pending=96 confirmed=True holding=False
+[INFO] [1788857658.466355520] [tracking_pick_node]: class=pet_labeled conf=0.63 anchor=(231.0,633.6) kf_x=244.8 kf_vx=-0.01 pending=97 confirmed=True holding=False
+[INFO] [1788857658.599775634] [tracking_pick_node]: class=pet_labeled conf=0.62 anchor=(229.6,619.2) kf_x=244.7 kf_vx=-0.06 pending=98 confirmed=True holding=False
+[INFO] [1788857658.731768493] [tracking_pick_node]: class=pet_labeled conf=0.63 anchor=(231.0,633.7) kf_x=244.7 kf_vx=-0.04 pending=99 confirmed=True holding=False
+[INFO] [1788857658.865761113] [tracking_pick_node]: class=pet_labeled conf=0.67 anchor=(231.1,633.5) kf_x=244.8 kf_vx=-0.02 pending=100 confirmed=True holding=False
+[INFO] [1788857659.000962558] [tracking_pick_node]: class=pet_labeled conf=0.64 anchor=(230.9,633.4) kf_x=244.8 kf_vx=-0.01 pending=101 confirmed=True holding=False
+[INFO] [1788857659.130618761] [tracking_pick_node]: class=pet_labeled conf=0.67 anchor=(229.7,619.5) kf_x=244.7 kf_vx=-0.05 pending=102 confirmed=True holding=False
+[INFO] [1788857659.273670215] [tracking_pick_node]: class=pet_labeled conf=0.67 anchor=(230.9,633.5) kf_x=244.8 kf_vx=-0.03 pending=103 confirmed=True holding=False
+[INFO] [1788857659.398909535] [tracking_pick_node]: class=pet_labeled conf=0.65 anchor=(229.9,620.6) kf_x=244.6 kf_vx=-0.07 pending=104 confirmed=True holding=False
+[INFO] [1788857659.530054930] [tracking_pick_node]: class=pet_labeled conf=0.65 anchor=(230.9,633.6) kf_x=244.7 kf_vx=-0.05 pending=105 confirmed=True holding=False
+[INFO] [1788857659.675683696] [tracking_pick_node]: class=pet_labeled conf=0.66 anchor=(231.2,633.5) kf_x=244.8 kf_vx=-0.02 pending=106 confirmed=True holding=False
+[INFO] [1788857659.797387822] [tracking_pick_node]: class=pet_labeled conf=0.65 anchor=(231.0,633.4) kf_x=244.8 kf_vx=-0.01 pending=107 confirmed=True holding=False
+[INFO] [1788857659.892914694] [tracking_pick_node]: [VOICE] state=IDLE cmd='start'
+[INFO] [1788857659.893392025] [tracking_pick_node]: [VOICE] start: cleared 1 pre-run track(s); requiring fresh moving-belt detections
+[INFO] [1788857659.893843060] [tracking_pick_node]: [CONVEYOR] /conveyor_command -> START
+[INFO] [1788857659.894225356] [tracking_pick_node]: [TTS] 분리수거를 시작합니다.
+[INFO] [1788857659.930497770] [tracking_pick_node]: class=pet_labeled conf=0.62 anchor=(231.0,633.1) kf_x=245.3 kf_vx=0.00 pending=1 confirmed=False holding=False
+[INFO] [1788857660.067549968] [tracking_pick_node]: class=pet_labeled conf=0.73 anchor=(233.1,633.7) kf_x=246.5 kf_vx=0.15 pending=2 confirmed=False holding=False
+[INFO] [1788857660.200479623] [tracking_pick_node]: class=pet_labeled conf=0.76 anchor=(232.7,619.5) kf_x=245.0 kf_vx=-9.58 pending=3 confirmed=False holding=False
+[INFO] [1788857660.335897777] [tracking_pick_node]: class=pet_labeled conf=0.80 anchor=(233.6,621.5) kf_x=245.2 kf_vx=-3.13 pending=4 confirmed=False holding=False
+[INFO] [1788857660.466478066] [tracking_pick_node]: class=pet_labeled conf=0.78 anchor=(234.3,620.9) kf_x=245.5 kf_vx=-0.83 pending=5 confirmed=False holding=False
+[INFO] [1788857660.598185008] [tracking_pick_node]: class=pet_labeled conf=0.79 anchor=(235.4,620.1) kf_x=246.0 kf_vx=0.55 pending=6 confirmed=False holding=False
+[INFO] [1788857660.734823000] [tracking_pick_node]: class=pet_labeled conf=0.78 anchor=(238.3,630.8) kf_x=247.5 kf_vx=3.55 pending=7 confirmed=False holding=False
+[INFO] [1788857660.867061199] [tracking_pick_node]: class=pet_labeled conf=0.89 anchor=(239.3,629.7) kf_x=248.6 kf_vx=4.59 pending=8 confirmed=False holding=False
+[INFO] [1788857660.999623538] [tracking_pick_node]: class=pet_labeled conf=0.91 anchor=(240.5,629.8) kf_x=249.5 kf_vx=5.02 pending=9 confirmed=True holding=False
+[INFO] [1788857661.000783574] [tracking_pick_node]: PICK TRIGGER class=pet_labeled predicted_pickup(preview)=[ 279.01858174 -360.46903305  319.85682385] dry_run=False remaining_tracks=0
+[INFO] [1788857661.001057104] [tracking_pick_node]: [EXEC] open gripper (approach 전 확인)
+[INFO] [1788857661.510952071] [tracking_pick_node]: [EXEC] force normalize for pet_labeled (첫 파지, 절대값 모름 -- 최대까지 올린 뒤 목표까지 내림)
+[INFO] [1788857662.468432728] [tracking_pick_node]: [EXEC] re-predicted after force-normalize: extra_gap=1.469s total_ahead=7.350s predicted_x=286.40 (힘정규화 지연 반영됨)
+[INFO] [1788857662.469038484] [tracking_pick_node]: [EXEC] move to hover [286.3974712471001, -264.0, 430.0, 179.78, 176.4, 89.78]
+[INFO] [1788857663.291327209] [tracking_pick_node]: [EXEC] descend 100mm
+[INFO] [1788857665.187034396] [tracking_pick_node]: [EXEC] close gripper
+[INFO] [1788857666.198971310] [tracking_pick_node]: [EXEC] rise 100mm
+[INFO] [1788857668.086785923] [tracking_pick_node]: [EXEC] pick complete, stopping conveyor for placement
+[INFO] [1788857668.087169980] [tracking_pick_node]: [CONVEYOR] /conveyor_command -> STOP
+[INFO] [1788857668.087653833] [tracking_pick_node]: [EXEC] pick complete for pet_labeled, placing...
+[INFO] [1788857668.089948030] [tracking_pick_node]: [HANDOFF] pet_labeled: rise 120.0mm to presentation height (같은 x/y 컬럼, 새 자세 탐색 안 함)
+[INFO] [1788857670.189316098] [tracking_pick_node]: [HANDOFF] entering compliance mode stx=[500.0, 500.0, 500.0, 100.0, 100.0, 100.0] (release_threshold_mm=10.0, timeout_sec=15.0)
+[INFO] [1788857670.692439802] [tracking_pick_node]: [HANDOFF] baseline captured, start_pos=[286.9, -264.3, 548.3]
+[INFO] [1788857670.995518159] [tracking_pick_node]: [HANDOFF] poll elapsed=0.30s pos=(287.2,-264.5,546.8) total_disp=1.5mm step_horiz=0.4mm step_vert=-1.5mm dt=0.30s speed_horiz=1.2mm/s fast_count=0/2
+[INFO] [1788857671.298919126] [tracking_pick_node]: [HANDOFF] poll elapsed=0.60s pos=(287.5,-264.7,545.5) total_disp=2.8mm step_horiz=0.3mm step_vert=-1.2mm dt=0.30s speed_horiz=1.1mm/s fast_count=0/2
+[INFO] [1788857671.602976442] [tracking_pick_node]: [HANDOFF] poll elapsed=0.91s pos=(287.7,-264.9,544.4) total_disp=4.0mm step_horiz=0.3mm step_vert=-1.2mm dt=0.30s speed_horiz=1.0mm/s fast_count=0/2
+[INFO] [1788857671.905609196] [tracking_pick_node]: [HANDOFF] poll elapsed=1.21s pos=(288.0,-265.0,543.4) total_disp=5.1mm step_horiz=0.3mm step_vert=-1.0mm dt=0.30s speed_horiz=1.0mm/s fast_count=0/2
+[INFO] [1788857672.210549035] [tracking_pick_node]: [HANDOFF] poll elapsed=1.51s pos=(289.1,-264.9,542.7) total_disp=6.0mm step_horiz=1.1mm step_vert=-0.6mm dt=0.30s speed_horiz=3.7mm/s fast_count=0/2
+[INFO] [1788857672.514117132] [tracking_pick_node]: [HANDOFF] poll elapsed=1.82s pos=(291.4,-265.1,541.6) total_disp=8.0mm step_horiz=2.2mm step_vert=-1.1mm dt=0.30s speed_horiz=7.4mm/s fast_count=0/2
+[INFO] [1788857672.816685715] [tracking_pick_node]: [HANDOFF] poll elapsed=2.12s pos=(293.6,-265.3,540.6) total_disp=10.2mm step_horiz=2.2mm step_vert=-1.0mm dt=0.30s speed_horiz=7.3mm/s fast_count=0/2
+[INFO] [1788857673.119348226] [tracking_pick_node]: [HANDOFF] poll elapsed=2.42s pos=(295.8,-265.6,539.5) total_disp=12.5mm step_horiz=2.2mm step_vert=-1.1mm dt=0.30s speed_horiz=7.4mm/s fast_count=0/2
+[INFO] [1788857673.423408280] [tracking_pick_node]: [HANDOFF] poll elapsed=2.73s pos=(297.7,-265.8,538.5) total_disp=14.6mm step_horiz=1.9mm step_vert=-1.0mm dt=0.30s speed_horiz=6.3mm/s fast_count=0/2
+[INFO] [1788857673.726276182] [tracking_pick_node]: [HANDOFF] poll elapsed=3.03s pos=(299.7,-266.1,537.4) total_disp=16.9mm step_horiz=2.1mm step_vert=-1.0mm dt=0.30s speed_horiz=6.8mm/s fast_count=0/2
+[INFO] [1788857674.029194784] [tracking_pick_node]: [HANDOFF] poll elapsed=3.33s pos=(301.7,-266.3,536.5) total_disp=19.0mm step_horiz=2.0mm step_vert=-1.0mm dt=0.30s speed_horiz=6.5mm/s fast_count=0/2
+[INFO] [1788857674.332471413] [tracking_pick_node]: [HANDOFF] poll elapsed=3.64s pos=(303.6,-266.5,535.5) total_disp=21.1mm step_horiz=2.0mm step_vert=-0.9mm dt=0.30s speed_horiz=6.5mm/s fast_count=0/2
+[INFO] [1788857674.635318779] [tracking_pick_node]: [HANDOFF] poll elapsed=3.94s pos=(305.5,-266.7,534.7) total_disp=23.1mm step_horiz=1.9mm step_vert=-0.8mm dt=0.30s speed_horiz=6.2mm/s fast_count=0/2
+[INFO] [1788857674.938317618] [tracking_pick_node]: [HANDOFF] poll elapsed=4.24s pos=(307.3,-266.8,533.8) total_disp=25.1mm step_horiz=1.8mm step_vert=-0.9mm dt=0.30s speed_horiz=5.9mm/s fast_count=0/2
+[INFO] [1788857675.241318921] [tracking_pick_node]: [HANDOFF] poll elapsed=4.55s pos=(309.0,-266.9,533.1) total_disp=26.9mm step_horiz=1.7mm step_vert=-0.7mm dt=0.30s speed_horiz=5.5mm/s fast_count=0/2
+[INFO] [1788857675.544590529] [tracking_pick_node]: [HANDOFF] poll elapsed=4.85s pos=(310.6,-267.0,532.4) total_disp=28.6mm step_horiz=1.6mm step_vert=-0.7mm dt=0.30s speed_horiz=5.3mm/s fast_count=0/2
+[INFO] [1788857675.847940078] [tracking_pick_node]: [HANDOFF] poll elapsed=5.15s pos=(312.0,-267.1,531.7) total_disp=30.2mm step_horiz=1.4mm step_vert=-0.7mm dt=0.30s speed_horiz=4.6mm/s fast_count=0/2
+[INFO] [1788857676.150640693] [tracking_pick_node]: [HANDOFF] poll elapsed=5.46s pos=(313.3,-267.2,531.0) total_disp=31.6mm step_horiz=1.3mm step_vert=-0.7mm dt=0.30s speed_horiz=4.4mm/s fast_count=0/2
+[INFO] [1788857676.453488588] [tracking_pick_node]: [HANDOFF] poll elapsed=5.76s pos=(314.6,-267.3,530.4) total_disp=33.1mm step_horiz=1.3mm step_vert=-0.6mm dt=0.30s speed_horiz=4.3mm/s fast_count=0/2
+[INFO] [1788857676.756376662] [tracking_pick_node]: [HANDOFF] poll elapsed=6.06s pos=(315.7,-267.5,529.8) total_disp=34.3mm step_horiz=1.1mm step_vert=-0.6mm dt=0.30s speed_horiz=3.8mm/s fast_count=0/2
+[INFO] [1788857677.059631804] [tracking_pick_node]: [HANDOFF] poll elapsed=6.36s pos=(316.8,-267.6,529.2) total_disp=35.6mm step_horiz=1.1mm step_vert=-0.6mm dt=0.30s speed_horiz=3.6mm/s fast_count=0/2
+[INFO] [1788857677.362388268] [tracking_pick_node]: [HANDOFF] poll elapsed=6.67s pos=(318.1,-267.7,528.8) total_disp=36.8mm step_horiz=1.2mm step_vert=-0.4mm dt=0.30s speed_horiz=4.1mm/s fast_count=0/2
+[INFO] [1788857677.667700897] [tracking_pick_node]: [HANDOFF] poll elapsed=6.97s pos=(319.4,-267.7,528.3) total_disp=38.3mm step_horiz=1.4mm step_vert=-0.5mm dt=0.30s speed_horiz=4.6mm/s fast_count=0/2
+[INFO] [1788857677.970630585] [tracking_pick_node]: [HANDOFF] poll elapsed=7.28s pos=(320.8,-267.6,527.7) total_disp=39.8mm step_horiz=1.4mm step_vert=-0.5mm dt=0.31s speed_horiz=4.6mm/s fast_count=0/2
+[INFO] [1788857678.273902791] [tracking_pick_node]: [HANDOFF] poll elapsed=7.58s pos=(322.3,-267.5,527.3) total_disp=41.2mm step_horiz=1.5mm step_vert=-0.4mm dt=0.30s speed_horiz=4.8mm/s fast_count=0/2
+[INFO] [1788857678.576618510] [tracking_pick_node]: [HANDOFF] poll elapsed=7.88s pos=(323.8,-267.5,526.7) total_disp=42.9mm step_horiz=1.5mm step_vert=-0.6mm dt=0.30s speed_horiz=5.1mm/s fast_count=0/2
+[INFO] [1788857678.884787484] [tracking_pick_node]: [HANDOFF] poll elapsed=8.18s pos=(325.0,-267.5,526.4) total_disp=44.0mm step_horiz=1.2mm step_vert=-0.3mm dt=0.30s speed_horiz=3.9mm/s fast_count=0/2
+[INFO] [1788857679.187591199] [tracking_pick_node]: [HANDOFF] poll elapsed=8.49s pos=(326.4,-267.5,525.9) total_disp=45.4mm step_horiz=1.3mm step_vert=-0.5mm dt=0.31s speed_horiz=4.3mm/s fast_count=0/2
+[INFO] [1788857679.490393334] [tracking_pick_node]: [HANDOFF] poll elapsed=8.80s pos=(327.4,-267.4,525.6) total_disp=46.5mm step_horiz=1.1mm step_vert=-0.4mm dt=0.30s speed_horiz=3.6mm/s fast_count=0/2
+[INFO] [1788857679.793943863] [tracking_pick_node]: [HANDOFF] poll elapsed=9.10s pos=(328.4,-267.4,525.1) total_disp=47.6mm step_horiz=1.0mm step_vert=-0.4mm dt=0.30s speed_horiz=3.3mm/s fast_count=0/2
+[INFO] [1788857680.096511940] [tracking_pick_node]: [HANDOFF] poll elapsed=9.40s pos=(329.5,-267.4,524.8) total_disp=48.7mm step_horiz=1.1mm step_vert=-0.3mm dt=0.30s speed_horiz=3.6mm/s fast_count=0/2
+[INFO] [1788857680.399533149] [tracking_pick_node]: [HANDOFF] poll elapsed=9.70s pos=(330.5,-267.3,524.5) total_disp=49.8mm step_horiz=1.0mm step_vert=-0.3mm dt=0.30s speed_horiz=3.3mm/s fast_count=0/2
+[INFO] [1788857680.703381537] [tracking_pick_node]: [HANDOFF] poll elapsed=10.01s pos=(331.5,-267.3,524.3) total_disp=50.7mm step_horiz=0.9mm step_vert=-0.2mm dt=0.30s speed_horiz=3.0mm/s fast_count=0/2
+[INFO] [1788857681.006691319] [tracking_pick_node]: [HANDOFF] poll elapsed=10.31s pos=(332.4,-267.3,523.9) total_disp=51.7mm step_horiz=1.0mm step_vert=-0.3mm dt=0.30s speed_horiz=3.2mm/s fast_count=0/2
+[INFO] [1788857681.309520473] [tracking_pick_node]: [HANDOFF] poll elapsed=10.62s pos=(333.4,-267.3,523.7) total_disp=52.6mm step_horiz=1.0mm step_vert=-0.3mm dt=0.30s speed_horiz=3.1mm/s fast_count=0/2
+[INFO] [1788857681.613537515] [tracking_pick_node]: [HANDOFF] poll elapsed=10.92s pos=(334.2,-267.3,523.4) total_disp=53.5mm step_horiz=0.8mm step_vert=-0.3mm dt=0.30s speed_horiz=2.6mm/s fast_count=0/2
+[INFO] [1788857681.916483182] [tracking_pick_node]: [HANDOFF] poll elapsed=11.22s pos=(335.0,-267.2,523.2) total_disp=54.3mm step_horiz=0.8mm step_vert=-0.2mm dt=0.30s speed_horiz=2.6mm/s fast_count=0/2
+[INFO] [1788857682.219364222] [tracking_pick_node]: [HANDOFF] poll elapsed=11.52s pos=(335.9,-267.2,522.9) total_disp=55.2mm step_horiz=0.9mm step_vert=-0.2mm dt=0.30s speed_horiz=3.0mm/s fast_count=0/2
+[INFO] [1788857682.522540269] [tracking_pick_node]: [HANDOFF] poll elapsed=11.83s pos=(336.8,-267.1,522.7) total_disp=56.1mm step_horiz=1.0mm step_vert=-0.2mm dt=0.30s speed_horiz=3.2mm/s fast_count=0/2
+[INFO] [1788857682.825896153] [tracking_pick_node]: [HANDOFF] poll elapsed=12.13s pos=(337.9,-267.0,522.5) total_disp=57.2mm step_horiz=1.1mm step_vert=-0.2mm dt=0.30s speed_horiz=3.5mm/s fast_count=0/2
+[INFO] [1788857683.130729230] [tracking_pick_node]: [HANDOFF] poll elapsed=12.44s pos=(338.8,-266.9,522.3) total_disp=58.1mm step_horiz=0.9mm step_vert=-0.2mm dt=0.30s speed_horiz=3.1mm/s fast_count=0/2
+[INFO] [1788857683.433482947] [tracking_pick_node]: [HANDOFF] poll elapsed=12.74s pos=(339.3,-266.9,522.1) total_disp=58.6mm step_horiz=0.5mm step_vert=-0.2mm dt=0.30s speed_horiz=1.6mm/s fast_count=0/2
+[INFO] [1788857683.736634700] [tracking_pick_node]: [HANDOFF] poll elapsed=13.04s pos=(339.6,-266.9,522.3) total_disp=58.8mm step_horiz=0.3mm step_vert=+0.1mm dt=0.30s speed_horiz=0.9mm/s fast_count=0/2
+[INFO] [1788857684.039474057] [tracking_pick_node]: [HANDOFF] poll elapsed=13.34s pos=(340.4,-266.8,522.0) total_disp=59.6mm step_horiz=0.8mm step_vert=-0.3mm dt=0.30s speed_horiz=2.7mm/s fast_count=0/2
+[INFO] [1788857684.342728437] [tracking_pick_node]: [HANDOFF] poll elapsed=13.65s pos=(341.1,-266.8,521.9) total_disp=60.3mm step_horiz=0.7mm step_vert=-0.1mm dt=0.30s speed_horiz=2.2mm/s fast_count=0/2
+[INFO] [1788857684.645926741] [tracking_pick_node]: [HANDOFF] poll elapsed=13.95s pos=(341.7,-266.8,521.8) total_disp=60.9mm step_horiz=0.6mm step_vert=-0.1mm dt=0.30s speed_horiz=2.0mm/s fast_count=0/2
+[INFO] [1788857684.948669180] [tracking_pick_node]: [HANDOFF] poll elapsed=14.25s pos=(342.2,-266.7,521.7) total_disp=61.3mm step_horiz=0.5mm step_vert=-0.0mm dt=0.30s speed_horiz=1.6mm/s fast_count=0/2
+[INFO] [1788857685.251725294] [tracking_pick_node]: [HANDOFF] poll elapsed=14.56s pos=(342.6,-266.8,521.5) total_disp=61.8mm step_horiz=0.4mm step_vert=-0.2mm dt=0.30s speed_horiz=1.3mm/s fast_count=0/2
+[INFO] [1788857685.555625232] [tracking_pick_node]: [HANDOFF] poll elapsed=14.86s pos=(342.9,-266.7,521.5) total_disp=62.1mm step_horiz=0.3mm step_vert=-0.0mm dt=0.30s speed_horiz=1.1mm/s fast_count=0/2
+[INFO] [1788857685.858724458] [tracking_pick_node]: [HANDOFF] poll elapsed=15.16s pos=(343.5,-266.6,521.4) total_disp=62.6mm step_horiz=0.6mm step_vert=-0.1mm dt=0.30s speed_horiz=1.9mm/s fast_count=0/2
+[WARN] [1788857685.859222836] [tracking_pick_node]: [HANDOFF] pet_labeled: no pull detected within 15.0s -- routing to review_bin instead of releasing in place
+[INFO] [1788857685.859487809] [tracking_pick_node]: [TTS] 받아가지 않아 확인 필요 통으로 옮깁니다.
+[INFO] [1788857685.859942925] [tracking_pick_node]: [HANDOFF] releasing compliance mode before re-routing
+[INFO] [1788857686.361114018] [tracking_pick_node]: [HANDOFF] pet_labeled -> review_bin (timeout): move to bin hover
+[INFO] [1788857690.890857184] [tracking_pick_node]: [HANDOFF] descend to review_bin place pose
+[INFO] [1788857692.787641265] [tracking_pick_node]: [HANDOFF] open gripper
+[INFO] [1788857693.798653192] [tracking_pick_node]: [HANDOFF] rise back to review_bin hover
+[INFO] [1788857695.687826143] [tracking_pick_node]: [HANDOFF] return to belt hover (x=300.0, ready for next pick)
+[INFO] [1788857700.187764809] [tracking_pick_node]: [HANDOFF] pet_labeled placed in review_bin (사람이 안 받아감), restarting conveyor -- handoff_timeout_count[pet_labeled]=1
+[INFO] [1788857700.188073746] [tracking_pick_node]: [CONVEYOR] /conveyor_command -> START
+[INFO] [1788857723.442528684] [tracking_pick_node]: [VOICE] state=RUNNING cmd='stop'
+[INFO] [1788857723.442775018] [tracking_pick_node]: [TTS] 작업을 종료합니다. 총 1개를 처리했습니다. pet_labeled 1개. 이 중 1개는 받아가지 않아 확인 필요 통으로 옮겼습니다.
+[INFO] [1788857723.443057319] [tracking_pick_node]: [CONVEYOR] /conveyor_command -> STOP
+Traceback (most recent call last):
+  File "/home/rokey/Rocycle_Project/ros2_ws/install/rocycle_robot/lib/python3.12/site-packages/rocycle_robot/tracking_pick_node.py", line 1771, in main
+    hover_pose = get_bin_pose(bin_name, "hover")
+    ^^^^^^^^^^^^^^^^
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/__init__.py", line 247, in spin
+    executor.spin_once()
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 926, in spin_once
+    self._spin_once_impl(timeout_sec)
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 907, in _spin_once_impl
+    handler, entity, node = self.wait_for_ready_callbacks(
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 877, in wait_for_ready_callbacks
+    return next(self._cb_iter)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 785, in _wait_for_ready_callbacks
+    raise ExternalShutdownException()
+rclpy.executors.ExternalShutdownException
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/rokey/Rocycle_Project/ros2_ws/install/rocycle_robot/lib/rocycle_robot/tracking_pick_node", line 33, in <module>
+    sys.exit(load_entry_point('rocycle_robot==0.0.1', 'console_scripts', 'tracking_pick_node')())
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rokey/Rocycle_Project/ros2_ws/install/rocycle_robot/lib/python3.12/site-packages/rocycle_robot/tracking_pick_node.py", line 1776, in main
+    
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/__init__.py", line 134, in shutdown
+    _shutdown(context=context)
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/utilities.py", line 82, in shutdown
+    context.shutdown()
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/context.py", line 129, in shutdown
+    self.__context.shutdown()
+rclpy._rclpy_pybind11.RCLError: failed to shutdown: rcl_shutdown already called on the given context, at ./src/rcl/init.c:333
