@@ -65,6 +65,8 @@ import numpy as np
 import rclpy
 from rclpy.executors import SingleThreadedExecutor
 from rclpy.node import Node
+from rclpy.qos import qos_profile_sensor_data
+from sensor_msgs.msg import CameraInfo
 from std_msgs.msg import String
 
 try:
@@ -317,6 +319,32 @@ class TrackingNode(Node):
             10,
         )
 
+        # [8일차] 관제 화면(web_ui) 연동 -- `tracking_node.py`에 있던
+        # `/ui/*` 발행을 이 노드로 이식. web_ui/index.html이 실제로
+        # 구독하는 건 `/ui/state`와 `/ui/alert` 두 개다.
+        # `/ui/detections`(bbox 오버레이)는 화면에서 아직 안 그리므로
+        # (web_ui/README.md "알려진 제약") 이번엔 넣지 않았다.
+        self._bin_counts: dict[str, int] = {}
+        self._stage = "idle"
+        self._last_result: dict | None = None
+        self._last_image_time: float | None = None
+
+        self._ui_state_pub = self.create_publisher(String, "/ui/state", 10)
+        self._ui_alert_pub = self.create_publisher(String, "/ui/alert", 10)
+
+        # 카메라 생존 신호. 원본(`tracking_node.py`)은 `/image_raw`를
+        # 직접 구독하니까 그 콜백에서 시각을 찍었는데, 이 노드는 Docker
+        # YOLO의 검출 토픽만 받으므로 그 경로가 없다. `/recycle_detection/
+        # detections` 도착 시각으로 대신하면 **벨트가 비어서 검출이 0건인
+        # 정상 상황**에도 카메라가 죽은 것처럼 보인다. 그래서 v4l2_camera가
+        # 영상과 같은 주기로 내보내는 `/camera_info`(수백 바이트, 디코딩
+        # 비용 없음)를 따로 구독해서 판정한다.
+        self.create_subscription(
+            CameraInfo, "/camera_info", self._on_camera_info, qos_profile_sensor_data
+        )
+
+        self.create_timer(0.5, self._publish_ui_state)
+
         if not self._dry_run:
             if MoveLine is None or SetCommand is None:
                 raise RuntimeError(
@@ -481,6 +509,59 @@ class TrackingNode(Node):
         )
         self.get_logger().debug(f"[MATCH] class={class_name} -> new track ({reason})")
         return None
+
+    def _on_camera_info(self, msg: CameraInfo) -> None:
+        """카메라 생존 확인 전용 -- 내용은 안 쓰고 도착 시각만 기록한다."""
+        self._last_image_time = self.get_clock().now().nanoseconds / 1e9
+
+    def _publish_ui_alert(self, level: str, msg: str) -> None:
+        """이벤트성 알림 발행 -- 도달 불가, 배치 실패, 무게 초과 라우팅 등
+        운영자가 놓치면 안 되는 순간에만 호출한다(주기 발행 아님,
+        `/ui/state`와 역할 분리)."""
+        payload = {"ts": time.time(), "level": level, "msg": msg}
+        out = String()
+        out.data = json.dumps(payload, ensure_ascii=False)
+        self._ui_alert_pub.publish(out)
+
+    def _publish_ui_state(self) -> None:
+        """0.5초 주기(2Hz) 상태 스냅샷 발행.
+
+        `health.robot`은 dry_run 중엔 판단 불가라 `None`(JSON null)로 둔다
+        (실제 로봇 없이 True/False로 단정하면 과대 청구 원칙 위반).
+        `health.conveyor`는 원본이 `service_is_ready()`를 썼지만 이 노드는
+        컨베이어를 서비스가 아니라 `/conveyor_command` 토픽으로 제어하므로,
+        구독자(=conveyor_node) 존재 여부로 대체했다 -- 상태 확인을 위해
+        실제로 컨베이어를 움직이는 건 부작용이 커서 부적절하다.
+
+        **[알려진 제약]** `stage`가 pick/measure/place/handoff인 블로킹
+        구간(17~24초)에는 단일 스레드 executor라 이 타이머 자체가 안 돈다
+        (web_ui/README.md에 기록된 아키텍처 제약) -- 화면의 경과 시간이
+        클라이언트 로컬 시계로 계산되는 이유다.
+        """
+        now_ros = self.get_clock().now().nanoseconds / 1e9
+        camera_ok = (
+            self._last_image_time is not None
+            and (now_ros - self._last_image_time) < 2.0
+        )
+        counts = dict(self._bin_counts)
+        payload = {
+            "ts": time.time(),
+            "state": self._voice_state,
+            "stage": self._stage,
+            "counts": counts,
+            "total": sum(counts.values()),
+            "last": self._last_result,
+            "health": {
+                "camera": camera_ok,
+                "robot": None if self._dry_run else True,
+                "conveyor": self.count_subscribers("/conveyor_command") > 0,
+                "stt": self.count_publishers("/voice_command") > 0,
+                "tts": self.count_subscribers("/voice/tts/say") > 0,
+            },
+        }
+        msg = String()
+        msg.data = json.dumps(payload, ensure_ascii=False)
+        self._ui_state_pub.publish(msg)
 
     def _say(self, text: str) -> None:
         """TTS 발행 + 콘솔/로그 폴백(v56 요청3) -- TTS가 아직 팀원 쪽과
@@ -897,6 +978,8 @@ class TrackingNode(Node):
 
         # 물체를 들고 있으면 새 Pick 금지
         if self._holding:
+            # stage는 지금 진행 중인 단계(pick/measure/place/handoff)를
+            # 유지한다 -- 여기서 덮어쓰면 화면 진행 표시가 뒤로 튄다.
             return
 
         # START 전에는
@@ -905,7 +988,10 @@ class TrackingNode(Node):
             self._voice_state
             != "RUNNING"
         ):
+            self._stage = "idle"
             return
+
+        self._stage = "track" if self._tracks else "detect"
 
         candidates = [
             track
@@ -922,6 +1008,8 @@ class TrackingNode(Node):
 
         if not candidates:
             return
+
+        self._stage = "predict"
 
         # 벨트 진행방향에서
         # 가장 앞선 객체 우선
@@ -1226,6 +1314,9 @@ class TrackingNode(Node):
                 "-- 표준 자세로 도달 불가, MoveLine 시도 없이 중단(물체가 벨트 "
                 "끝쪽에서 너무 늦게 확정됨 -- 벨트 시작쪽에 더 가깝게 놓고 재시도할 것)"
             )
+            self._publish_ui_alert(
+                "warn", f"{item_key} 도달 범위 밖 — 파지 건너뜀"
+            )
             # [완료 — 6일차, 순차 처리 인덱싱] 이 트랙은 `_on_image`에서
             # 이미 self._tracks에서 제거된 뒤 여기로 넘어왔다(호출부
             # 참고) -- 별도로 락을 풀 필요 없이, 물체가 계속 보이면
@@ -1240,6 +1331,8 @@ class TrackingNode(Node):
                 f"[EXEC] hover move did not reach target (got {pos[:3]}, "
                 f"wanted {hover[:3]}) -- aborting pick"
             )
+            self._publish_ui_alert("error", "벨트 상공 이동 실패 — 파지 중단")
+            self._stage = "idle"
             # [버그 발견·수정 — 6일차, 핸드오버 1차 실물 시도] 예전 단일
             # 트랙(`_locked_class`) 설계에서는 여기서 락을 안 풀면 물체가
             # 계속 화면에 보이는 한 재시도 자체가 영원히 막히는 버그가
@@ -1250,6 +1343,7 @@ class TrackingNode(Node):
             # 재시도된다 -- 같은 효과를 구조적으로 유지.
             return
 
+        self._stage = "pick"
         self.get_logger().info(f"[EXEC] descend {depth}mm")
         self._call_move_line([0.0, 0.0, -depth, 0.0, 0.0, 0.0], v_vel, v_vel, mode=1)
 
@@ -1267,6 +1361,7 @@ class TrackingNode(Node):
         # 예측이 실제로 필요한 구간, 그대로 유지).
         self.get_logger().info("[EXEC] pick complete, stopping conveyor for placement")
         self._call_conveyor("off")
+        self._stage = "measure"
 
         # [완료 — 6일차] 무게 측정으로 내용물 여부 판정(원칙7,
         # v31 팀결정: can으로 무게측정). Doosan 표준 API 사용, 파지
@@ -1302,6 +1397,19 @@ class TrackingNode(Node):
                     f"[EXEC] {item_key} over weight threshold -- routing to "
                     f"{forced_bin} instead (내용물 있는 것으로 의심)"
                 )
+                self._publish_ui_alert(
+                    "warn",
+                    f"{item_key} 무게 초과({net_weight:.3f}kg) — {forced_bin}으로 보냄",
+                )
+
+        # [8일차] `/ui/state`의 `last` 필드용 -- 실제 배치 통(`dest`)은
+        # 배치가 끝난 뒤에 채운다(여기서는 아직 미확정).
+        self._last_result = {
+            "item": item_key,
+            "dest": None,
+            "net_weight": net_weight if weight_check is not None else None,
+            "ts": time.time(),
+        }
 
         self.get_logger().info(f"[EXEC] pick complete for {item_key}, placing...")
         self._place_item(item_key, forced_bin=forced_bin)
@@ -1324,9 +1432,11 @@ class TrackingNode(Node):
         route = self._item_routing["routing"].get(item_key)
         if route is None:
             self.get_logger().error(f"no routing entry for {item_key!r} -- 들고 대기")
+            self._publish_ui_alert("error", f"{item_key} 라우팅 설정 없음 — 들고 대기")
             return
 
         if route["type"] == "human_handoff":
+            self._stage = "handoff"
             self._handoff_item(item_key)
             return
 
@@ -1334,6 +1444,7 @@ class TrackingNode(Node):
         hover_pose = get_bin_pose(bin_name, "hover")
         place_pose = get_bin_pose(bin_name, "place")
 
+        self._stage = "place"
         self.get_logger().info(f"[PLACE] {item_key} -> {bin_name}: move to bin hover")
         self._call_move_line(hover_pose, h_vel, h_vel, mode=0)
         pos = self._get_current_posx()
@@ -1342,6 +1453,9 @@ class TrackingNode(Node):
                 f"[PLACE] bin hover move did not reach target (got {pos[:3]}, "
                 f"wanted {hover_pose[:3]}) -- 들고 대기, 배치 중단, 벨트도 정지 유지"
                 "(사람이 확인 후 재시작할 것)"
+            )
+            self._publish_ui_alert(
+                "error", f"{bin_name} 상공 이동 실패 — 배치 중단, 사람 확인 필요"
             )
             return
 
@@ -1373,6 +1487,10 @@ class TrackingNode(Node):
 
         self._holding = False
         self._pick_counts[item_key] = self._pick_counts.get(item_key, 0) + 1
+        self._bin_counts[bin_name] = self._bin_counts.get(bin_name, 0) + 1
+        if self._last_result is not None and self._last_result.get("item") == item_key:
+            self._last_result["dest"] = bin_name
+        self._stage = "idle"
         self.get_logger().info(f"[PLACE] {item_key} placed in {bin_name}, restarting conveyor")
         self._call_conveyor("on")
 
@@ -1429,6 +1547,9 @@ class TrackingNode(Node):
                 f"[HANDOFF] presentation-height rise did not reach target "
                 f"(wanted +{extra_rise_mm}mm, got +{actual_rise:.1f}mm) -- "
                 "순응모드 진입 안 함, 들고 대기(벨트 정지 유지, 사람이 확인 후 재시작할 것)"
+            )
+            self._publish_ui_alert(
+                "error", f"{item_key} 제시 높이 상승 실패 — 핸드오버 중단, 사람 확인 필요"
             )
             self._say("핸드오버 자세 이동에 실패했습니다. 물체를 든 채 대기합니다. 확인이 필요합니다.")
             return  # _holding=True 그대로 유지
@@ -1552,6 +1673,10 @@ class TrackingNode(Node):
 
             self._holding = False
             self._pick_counts[item_key] = self._pick_counts.get(item_key, 0) + 1
+            self._bin_counts["human_handoff"] = self._bin_counts.get("human_handoff", 0) + 1
+            if self._last_result is not None and self._last_result.get("item") == item_key:
+                self._last_result["dest"] = "human_handoff"
+            self._stage = "idle"
             self.get_logger().info(f"[HANDOFF] {item_key} handed off, restarting conveyor")
             self._call_conveyor("on")
             return
@@ -1568,6 +1693,9 @@ class TrackingNode(Node):
         self.get_logger().warn(
             f"[HANDOFF] {item_key}: no pull detected within {timeout_sec}s -- "
             "routing to review_bin instead of releasing in place"
+        )
+        self._publish_ui_alert(
+            "warn", f"{item_key} 인계 시간 초과 — review_bin으로 재배치"
         )
         self._say("받아가지 않아 확인 필요 통으로 옮깁니다.")
         self.get_logger().info("[HANDOFF] releasing compliance mode before re-routing")
@@ -1587,6 +1715,9 @@ class TrackingNode(Node):
                 f"[HANDOFF] {bin_name} hover move did not reach target (got {pos[:3]}, "
                 f"wanted {hover_pose[:3]}) -- 들고 대기, 배치 중단, 벨트도 정지 유지"
                 "(사람이 확인 후 재시작할 것)"
+            )
+            self._publish_ui_alert(
+                "error", f"{bin_name} 상공 이동 실패 — 배치 중단, 사람 확인 필요"
             )
             return
 
@@ -1619,6 +1750,11 @@ class TrackingNode(Node):
         self._handoff_timeout_counts[item_key] = (
             self._handoff_timeout_counts.get(item_key, 0) + 1
         )
+        self._bin_counts[bin_name] = self._bin_counts.get(bin_name, 0) + 1
+        if self._last_result is not None and self._last_result.get("item") == item_key:
+            self._last_result["dest"] = bin_name
+            self._last_result["reason"] = "handoff_timeout"
+        self._stage = "idle"
         self.get_logger().info(
             f"[HANDOFF] {item_key} placed in {bin_name} (사람이 안 받아감), restarting conveyor "
             f"-- handoff_timeout_count[{item_key}]="
