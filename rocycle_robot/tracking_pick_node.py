@@ -295,6 +295,11 @@ class TrackingNode(Node):
         # 올라가므로(기존 집계 호환 유지) 여기서 구분 데이터를 남긴다 --
         # 나중에 실측 보정할 때 이 수치가 있어야 인계 실패율을 알 수 있다.
         self._handoff_timeout_counts: dict[str, int] = {}
+        # [8일차] 무게 측정 진단 로그용 -- 직전 이동 종료 시각, 컨베이어
+        # 가동 여부. baseline만 벨트 가동 중에 측정되는 문제를 로그에서
+        # 바로 확인할 수 있게 한다.
+        self._last_move_done_t: float | None = None
+        self._conveyor_running = False
 
         # 로봇 실행 -- dry_run=False일 때만 생성. [버그 발견·수정 —
         # 6일차] 처음엔 self(=TrackingNode)에 클라이언트를 만들고
@@ -562,6 +567,39 @@ class TrackingNode(Node):
         msg = String()
         msg.data = json.dumps(payload, ensure_ascii=False)
         self._ui_state_pub.publish(msg)
+
+    def _apply_place_pose_override(
+        self, item_key: str, bin_name: str, hover_pose: list, place_pose: list
+    ) -> tuple[list, list]:
+        """[완료 — 8일차, v87 회신] `config/item_routing.yaml`의
+        `place_pose_override[item_key][bin_name]`을 조회해 rx/ry/rz만
+        덮어쓴다(x/y/z는 그 통의 원래 좌표 그대로) -- 오버라이드가
+        없으면 입력을 그대로 반환(기존 동작 무변화). **품목별이
+        아니라 (품목, 통)별**인 이유: `can`처럼 정상 경로(can_bin)와
+        무게초과 경로(review_bin)로 같은 품목이 다른 통에 갈 수
+        있어서, 품목 하나에 자세 하나로는 부족하다.
+
+        오버라이드 dict에 rx/ry/rz 중 없는 축은 파지 자세
+        (`motion_timing.yaml`의 belt_hover_rx/ry/rz)를 기본값으로
+        쓴다 -- "회전 없이 파지 각도 그대로 넣는다"는 의도를
+        축 단위로 부분 지정할 수 있게 하기 위함.
+        """
+        override = self._item_routing.get("place_pose_override", {}).get(
+            item_key, {}
+        ).get(bin_name)
+        if not override:
+            return hover_pose, place_pose
+
+        mt = self._motion_timing
+        rpy = [
+            override.get("rx", mt["belt_hover_rx"]),
+            override.get("ry", mt["belt_hover_ry"]),
+            override.get("rz", mt["belt_hover_rz"]),
+        ]
+        self.get_logger().info(
+            f"[PLACE] place_pose_override 적용: item={item_key} bin={bin_name} rpy={rpy}"
+        )
+        return hover_pose[:3] + rpy, place_pose[:3] + rpy
 
     def _say(self, text: str) -> None:
         """TTS 발행 + 콘솔/로그 폴백(v56 요청3) -- TTS가 아직 팀원 쪽과
@@ -1101,6 +1139,9 @@ class TrackingNode(Node):
         req.sync_type = 0
         future = self._move_line_client.call_async(req)
         self._robot_executor.spin_until_future_complete(future, timeout_sec=20.0)
+        # [8일차] 무게 측정 로그에 "직전 이동 종료 후 경과시간"을 남기기
+        # 위한 시각. settle 부족이 측정에 섞이는지 사후 판정용이다.
+        self._last_move_done_t = time.monotonic()
         return future.result()
 
     def _call_gripper(self, command):
@@ -1159,6 +1200,51 @@ class TrackingNode(Node):
             return None
         return sum(readings) / len(readings)
 
+    def _weigh_with_log(self, label: str, n: int = 5, interval: float = 0.15):
+        """[8일차] 무게 측정 + **원시샘플·자세·직전이동 경과시간 로깅**.
+
+        `_get_workpiece_weight_avg()`와 계산 결과는 동일하고(평균), 진단에
+        필요한 맥락을 로그로 남기는 것만 다르다. **판정에는 관여하지
+        않는다** -- 호출부는 반환된 평균값을 기존과 똑같이 쓴다.
+
+        남기는 이유: `net = post-pick - baseline`의 요동이 힘센서 고유
+        노이즈가 아니라 **두 측정의 조건 차이**(자세 109~144mm 차이,
+        baseline만 벨트 가동 중)라는 게 8일차에 규명됐다. 원인을 확정
+        하려면 평균값이 아니라 **각 샘플의 원시값**과 그 시점의 자세가
+        필요하다(6일차엔 평균만 남겨서 사후 분석이 불가능했다).
+
+        `_last_move_done_t`는 직전 이동이 끝난 시각으로, 측정까지의
+        settle 시간을 재기 위한 것이다.
+        """
+        readings = []
+        for _ in range(n):
+            w = self._get_workpiece_weight()
+            if w is not None:
+                readings.append(w)
+            time.sleep(interval)
+
+        try:
+            pos = self._get_current_posx()
+            pos_s = "(%.1f,%.1f,%.1f,%.1f,%.1f,%.1f)" % tuple(pos[:6])
+        except Exception as exc:  # 진단 로깅이 파지 사이클을 깨선 안 된다
+            pos_s = f"<자세 읽기 실패: {exc}>"
+
+        since_move = (
+            time.monotonic() - self._last_move_done_t
+            if self._last_move_done_t is not None
+            else float("nan")
+        )
+        avg = sum(readings) / len(readings) if readings else None
+        self.get_logger().info(
+            "[WEIGHLOG] %s n=%d/%d avg=%s samples=%s pose=%s "
+            "since_last_move=%.2fs conveyor_running=%s"
+            % (label, len(readings), n,
+               f"{avg*1000:.1f}g" if avg is not None else "None",
+               "[" + ", ".join(f"{r*1000:.1f}" for r in readings) + "]",
+               pos_s, since_move, self._conveyor_running)
+        )
+        return avg
+
     def _call_task_compliance_ctrl(self, stx, ref: int = 0, time_: float = 0.0):
         req = TaskComplianceCtrl.Request()
         req.stx = list(stx)
@@ -1181,8 +1267,10 @@ class TrackingNode(Node):
 
         if cmd == "off":
             msg.data = "STOP"
+            self._conveyor_running = False
         else:
             msg.data = "START"
+            self._conveyor_running = True
 
         self._conveyor_pub.publish(
             msg
@@ -1282,7 +1370,7 @@ class TrackingNode(Node):
         # 그대로 유지 -- 거기는 시간이 늘어도 다음 파지에 영향 없다.
         weight_check = self._item_routing.get("weight_check", {}).get(item_key)
         baseline_weight = (
-            self._get_workpiece_weight_avg(n=3, interval=0.08)
+            self._weigh_with_log("can-baseline", n=3, interval=0.08)
             if weight_check is not None
             else None
         )
@@ -1381,7 +1469,7 @@ class TrackingNode(Node):
         # measurement 평균으로 줄인다.
         forced_bin = None
         if weight_check is not None:
-            weight_kg = self._get_workpiece_weight_avg()
+            weight_kg = self._weigh_with_log("can-postpick")
             threshold = weight_check["threshold_kg"]
             net_weight = None
             if weight_kg is not None and baseline_weight is not None:
@@ -1443,6 +1531,9 @@ class TrackingNode(Node):
         bin_name = forced_bin if forced_bin is not None else route["bin"]
         hover_pose = get_bin_pose(bin_name, "hover")
         place_pose = get_bin_pose(bin_name, "place")
+        hover_pose, place_pose = self._apply_place_pose_override(
+            item_key, bin_name, hover_pose, place_pose
+        )
 
         self._stage = "place"
         self.get_logger().info(f"[PLACE] {item_key} -> {bin_name}: move to bin hover")
@@ -1555,6 +1646,26 @@ class TrackingNode(Node):
             return  # _holding=True 그대로 유지
 
         # ------------------------------------------------------------------
+        # 1-b) [8일차, v99] 무게 측정 -- **로그만, 판정 없음**
+        # ------------------------------------------------------------------
+        # 8일차에 드러난 결함: `weight_check`가 `can`에만 정의돼 있어서,
+        # 내용물 든 캔이 `pet_labeled`로 오분류되면 무게 측정 자체를
+        # 건너뛰고 이 핸드오버 경로로 들어온다 -- **내용물 든 캔을
+        # 사람에게 내밀게 된다**(실측: 같은 캔인데 내용물 유무만으로
+        # 5회 중 3회 오분류). 원칙7("비전으로 못 보는 걸 힘으로 본다")이
+        # 비전 판정에 의존하는 구조라 비전이 틀리면 힘 판정에 도달조차
+        # 못 한다.
+        #
+        # 최종 방어는 "사람에게 주기 전엔 품목과 무관하게 무게를 확인"
+        # 하는 것인데, **지금은 판정을 켜지 않는다.** 두 가지가 먼저다:
+        #   (1) baseline/post-pick의 측정 조건 차이(자세 109~144mm,
+        #       벨트 가동 여부)를 잡아야 net 값을 믿을 수 있다.
+        #   (2) 정상 라벨 페트병의 무게 분포 실측치가 아직 없다.
+        # 그래서 여기서는 **측정하고 로그만 남긴다** -- 정상 핸드오버가
+        # 무게 때문에 막히는 회귀 없이 임계값 산정용 데이터를 모은다.
+        self._weigh_with_log(f"handoff-{item_key}-presented")
+
+        # ------------------------------------------------------------------
         # 2) 순응모드 진입
         # ------------------------------------------------------------------
         self.get_logger().info(
@@ -1627,11 +1738,24 @@ class TrackingNode(Node):
             ) ** 0.5
             speed_horizontal = step_horizontal / dt if dt > 0 else 0.0
 
+            # [완료 — 8일차, v87] 누적변위에서 **아래 방향(-Z, 처짐)만
+            # 0으로 취급**한다. 기존 3D 전체 변위는 처짐만으로도
+            # release_threshold_mm(10mm)를 넘어 AND 조건의 절반이 상시
+            # 통과 상태였다 -- 1회차 실측이 그 증거다(처짐만으로 19.4mm,
+            # 사람 손 없음). 사람이 받아갈 땐 물체를 수평으로 끌거나
+            # 위로 올리지(+Z), 아래로 누르진 않는다는 물리적 근거.
+            dz_total = cur_pos[2] - start_pos[2]
+            dz_effective = max(dz_total, 0.0)  # 처짐(음수)은 0 취급, 들어올림(양수)은 그대로
             total_disp = (
                 (cur_pos[0] - start_pos[0]) ** 2
                 + (cur_pos[1] - start_pos[1]) ** 2
-                + (cur_pos[2] - start_pos[2]) ** 2
+                + dz_effective ** 2
             ) ** 0.5
+            total_disp_3d = (
+                (cur_pos[0] - start_pos[0]) ** 2
+                + (cur_pos[1] - start_pos[1]) ** 2
+                + dz_total ** 2
+            ) ** 0.5  # 로그 참고용(수정 전 값과 비교하기 위해 같이 남김)
             step_vertical = cur_pos[2] - prev_pos[2]  # 로그 참고용(부호로 처짐/들어올림 구분)
 
             is_fast = speed_horizontal >= pull_speed_mm_per_s
@@ -1642,10 +1766,10 @@ class TrackingNode(Node):
             # (로그 없이 사고가 나면 원인을 추정으로만 답하게 된다).
             self.get_logger().info(
                 "[HANDOFF] poll elapsed=%.2fs pos=(%.1f,%.1f,%.1f) "
-                "total_disp=%.1fmm step_horiz=%.1fmm step_vert=%+.1fmm "
+                "total_disp=%.1fmm (3d=%.1fmm) step_horiz=%.1fmm step_vert=%+.1fmm "
                 "dt=%.2fs speed_horiz=%.1fmm/s fast_count=%d/%d"
                 % (now_t - start_t, cur_pos[0], cur_pos[1], cur_pos[2],
-                   total_disp, step_horizontal, step_vertical, dt,
+                   total_disp, total_disp_3d, step_horizontal, step_vertical, dt,
                    speed_horizontal, fast_count, pull_speed_consecutive)
             )
 
@@ -1661,6 +1785,7 @@ class TrackingNode(Node):
                 break
 
         if released:
+            self._say("전달 완료했습니다.")
             self._call_gripper("o")
             time.sleep(self._item_routing.get("place_open_wait_sec", 1.0))
 
@@ -1704,8 +1829,25 @@ class TrackingNode(Node):
 
         h_vel = [mt["horizontal_vel"], mt["horizontal_acc"]]
         bin_name = "review_bin"
+
+        # [완료 — 8일차, v87] review_bin 배치 자세를 `place_pose_override`
+        # (config/item_routing.yaml)로 조회해 덮어쓴다. 티치 자세
+        # (rz=157.11)와 파지 자세(rz=89.78)가 67.33° 차이나는데, 그
+        # 각도로 돌리면 라벨 페트병 길이가 통 가로폭을 넘어 안 들어간다
+        # -- 1회차 실물에서 통에 부딪혀 **그리퍼가 SAFE 모드로 진입**했다
+        # (소프트웨어는 성공으로 기록 -- x/y 도달 확인만 하므로
+        # 그리퍼-통벽 간섭은 이 체크에 안 걸린다).
+        #
+        # [전제, 미검증] 이 (좌표, 자세) 조합은 한 번도 실행된 적이
+        # 없다 -- 실물 투입 전 반드시 빈 그리퍼로 먼저 이동시켜
+        # 도달성/그리퍼-통벽 간섭을 확인할 것(4일차 "상승 없이
+        # 이동하면 그리퍼가 통을 밀어버린" 사고 전례 있음,
+        # obstacles.yaml의 review_bin은 미실측 상태).
         hover_pose = get_bin_pose(bin_name, "hover")
         place_pose = get_bin_pose(bin_name, "place")
+        hover_pose, place_pose = self._apply_place_pose_override(
+            item_key, bin_name, hover_pose, place_pose
+        )
 
         self.get_logger().info(f"[HANDOFF] {item_key} -> {bin_name} (timeout): move to bin hover")
         self._call_move_line(hover_pose, h_vel, h_vel, mode=0)
