@@ -39,23 +39,37 @@
   }
   button:hover { filter: brightness(1.15); }
   .estop-btn {
-    position: fixed; z-index: 50;
+    z-index: 50;
     background: var(--error); color: #fff; font-weight: 700;
     box-shadow: 0 2px 10px rgba(0,0,0,.4);
   }
-  #estopMain { top: 20px; right: 20px; padding: 18px 26px; font-size: 20px; border-radius: 12px; }
-  #estopDetail { top: 14px; right: 160px; padding: 8px 16px; font-size: 14px; border-radius: 8px; }
+  #estopMain { padding: 18px 26px; font-size: 20px; border-radius: 12px; align-self: stretch; }
+  #estopDetail { top: 14px; right: 160px; position: fixed; padding: 8px 16px; font-size: 14px; border-radius: 8px; }
   .estop-caption {
-    position: fixed; z-index: 50; font-size: 11px; color: var(--text-muted);
+    z-index: 50; font-size: 11px; color: var(--text-muted);
     text-align: right;
   }
-  #estopMainCaption { top: 68px; right: 20px; width: 160px; }
-  #estopDetailCaption { top: 40px; right: 160px; width: 130px; }
+  #estopMainCaption { align-self: flex-end; }
+  #estopDetailCaption { top: 40px; right: 160px; position: fixed; width: 130px; }
+
+  /* [완료 -- 8일차, 관제PC 실측] 원래 estopMain/estopMainCaption/
+     controlButtons/alertPanel을 각각 독립된 position:fixed +
+     하드코딩 top: 값으로 배치했는데, 뷰포트 세로가 짧아지면(관제PC
+     실측: DevTools 도킹으로 body 326px) 서로 겹쳐 "레이아웃이 아예
+     안 잡힌 것처럼" 보였다 -- 실제로는 CSS 자체는 정상이었고 뷰포트
+     가정(넉넉한 세로 공간)이 깨진 것. **모니터 비율을 장담할 수
+     없는 관제 화면 특성상, 개별 절대좌표 대신 하나의 세로 컬럼으로
+     묶어 흐르게(overflow-y: auto) 바꾼다** -- 공간이 부족하면
+     겹치는 대신 스크롤된다. */
+  #topRightCluster {
+    position: fixed; top: 12px; right: 12px; z-index: 50;
+    display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
+    max-height: calc(100vh - 24px); overflow-y: auto; overflow-x: hidden;
+  }
 
   /* ---------- 조작 버튼 (v74 2절, 음성 대체용 -- /voice_command
      로 그대로 나간다) ---------- */
   #controlButtons {
-    position: fixed; top: 92px; right: 20px; z-index: 50;
     display: flex; gap: 6px;
   }
   #controlButtons button {
@@ -71,7 +85,7 @@
 
   /* ---------- 알림 패널 (/ui/alert) ---------- */
   #alertPanel {
-    position: fixed; top: 100px; right: 20px; width: 300px; z-index: 45;
+    width: 300px; max-width: calc(100vw - 24px);
     display: flex; flex-direction: column; gap: 8px;
   }
   .alert-item {
@@ -173,15 +187,17 @@
       <div id="elapsedText"></div>
       <button id="detailBtn">상세 &rarr;</button>
     </div>
-    <button id="estopMain" class="estop-btn">⏹ 비상정지</button>
-    <div id="estopMainCaption" class="estop-caption">위급 시 물리 버튼</div>
-    <div id="controlButtons">
-      <button id="btnStart">시작</button>
-      <button id="btnPause">일시정지</button>
-      <button id="btnResume">재개</button>
-      <button id="btnStop">종료</button>
+    <div id="topRightCluster">
+      <button id="estopMain" class="estop-btn">⏹ 비상정지</button>
+      <div id="estopMainCaption" class="estop-caption">위급 시 물리 버튼</div>
+      <div id="controlButtons">
+        <button id="btnStart">시작</button>
+        <button id="btnPause">일시정지</button>
+        <button id="btnResume">재개</button>
+        <button id="btnStop">종료</button>
+      </div>
+      <div id="alertPanel"></div>
     </div>
-    <div id="alertPanel"></div>
   </div>
 
   <!-- ================= 상세 페이지 ================= -->
