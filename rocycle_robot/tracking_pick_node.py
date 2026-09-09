@@ -239,6 +239,12 @@ class TrackingNode(Node):
         # 절반인 66ms를 기본값으로 둔다 -- 실시간 프레임이 이보다
         # 촘촘히 올 수는 없다.
         self.declare_parameter("vision.detection_min_gap_sec", 0.066)
+        # [9일차, v143] 예측에 쓰는 칼만 속도의 허용 범위.
+        # **벨트 실측 3.06mm/s**(캔, 중앙 구간, 표본 151개/20초,
+        # 잔차 RMS 0.25mm)의 약 2배를 상한으로 둔다. 벨트는 정속
+        # 장치이고 역주행하지 않으므로 하한은 0이다.
+        self.declare_parameter("kalman.vx_min_mm_s", 0.0)
+        self.declare_parameter("kalman.vx_max_mm_s", 6.0)
 
         self._min_consecutive_frames = (
             self.get_parameter(
@@ -280,6 +286,8 @@ class TrackingNode(Node):
         self._detection_min_gap_sec = self.get_parameter(
             "vision.detection_min_gap_sec"
         ).value
+        self._vx_min = self.get_parameter("kalman.vx_min_mm_s").value
+        self._vx_max = self.get_parameter("kalman.vx_max_mm_s").value
 
         # [완료 — 6일차, 순차 처리 인덱싱] 물체 1개 기준 단일 상태
         # (_pending_class/_locked_class/self._kf 하나)를 물체별 트랙
@@ -318,6 +326,7 @@ class TrackingNode(Node):
         # 짧은 간격은 실시간 프레임일 수 없다.
         self._last_detection_arrival = 0.0
         self._stale_detection_drops = 0
+        self._vx_clamp_count = 0
 
         # [안전 — 6일차, 사고 후 추가] 배치/상태머신이 아직 없어 파지
         # 후 놓는 동작이 없다 -- 들고 있는 채로 다음 물체를 또 집으려
@@ -1337,7 +1346,7 @@ class TrackingNode(Node):
         ahead = predict_ahead_sec(
             track["class_name"], self._motion_timing, self._gripper_profiles
         )
-        predicted_x = track["kf"].predict_position_at(ahead)
+        predicted_x = self._predict_x(track, ahead)
         return np.array([predicted_x, track["last_y"], track["last_z"]])
 
     # -- 로봇 실행 (dry_run=False 전용) -----------------------------------
@@ -1361,10 +1370,29 @@ class TrackingNode(Node):
         return future.result()
 
     def _call_gripper(self, command):
+        """[9일차, v147] 응답 대기를 8.0 -> 2.0초로 단축.
+
+        **무정지 전환으로 드러난 문제**: 그리퍼가 응답을 안 주면 8초를
+        꽉 채워 기다리는데, 그 사이 벨트는 계속 흐른다. 실측 60회 중
+        4회가 여기서 걸려 `close gripper -> rise`가 10초(=8초 타임아웃
+        + close_wait 2초)였고, 벨트 물체속도 2.9mm/s 기준 **물체가 약
+        23mm 끌렸다.** 인터록에서는 파지 중 벨트가 서 있어 드러나지
+        않던 항목이다.
+
+        **단축이 안전한 근거**: 그리퍼 `'c'`는 비동기라 응답이 물리적
+        완료를 뜻하지 않는다는 게 이 프로젝트의 확립된 전제이고
+        (CLAUDE.md), 물리적 완료는 호출부의 `close_wait_sec` sleep이
+        타임아웃과 **별개로** 보장한다. `call_async`라 명령 자체는
+        이미 전송돼 있고 응답만 유실/지연된 것이며, 실제로 그 4회 모두
+        파지에 성공했다. 정상 사이클은 1~3초 안에 끝나므로 2초면
+        정상 응답에는 여유가 충분하다.
+
+        근본 원인(Modbus 폴링 지연 또는 응답 유실)은 시연 이후 조사.
+        """
         req = SetCommand.Request()
         req.command = command
         future = self._gripper_client.call_async(req)
-        self._robot_executor.spin_until_future_complete(future, timeout_sec=8.0)
+        self._robot_executor.spin_until_future_complete(future, timeout_sec=2.0)
         return future.result()
 
     def _get_current_posx(self):
@@ -1604,6 +1632,36 @@ class TrackingNode(Node):
         except Exception:
             return None
 
+    def _predict_x(self, track: dict, ahead: float) -> float:
+        """[9일차, v143] 속도를 실측 범위로 클램프한 위치 예측.
+
+        **문제**: 관측 구간은 약 1.0초(9프레임 확정)인데 외삽 구간은
+        7~11초다 -- 관측의 8배를 외삽한다. 그 1초 창에서 추정한
+        속도가 참값(3.06mm/s)에서 2~24배씩 양방향으로 벗어난다:
+            실측 3.18mm/s 구간에서 칼만이 34.12mm/s로 추정
+        34mm/s를 9초 외삽하면 307mm -- 물체보다 30cm 앞을 집는다.
+        실제로 "허공 파지"와 "도달한계 초과(632mm)"가 이것 때문이었다.
+
+        **조치**: 벨트는 정속 장치이고 역주행하지 않으므로, 예측에
+        쓰는 속도만 [vx_min, vx_max]로 자른다. 필터 상태 자체는
+        건드리지 않는다(추적/매칭에는 원래 추정을 그대로 쓴다).
+        참값 기준 9초 이동량은 약 28mm로 그리퍼 여유 안이므로,
+        이상치만 잘라내도 예측은 충분히 맞는다.
+
+        근본 대책(벨트 속도를 상수로 고정)은 prediction_bias_mm
+        의존관계까지 정리해야 해서 시연 이후 과제로 미뤄져 있다.
+        """
+        st = track["kf"].state
+        vx = min(max(st.vx, self._vx_min), self._vx_max)
+        if vx != st.vx:
+            self._vx_clamp_count += 1
+            if self._vx_clamp_count % 10 == 1:
+                self.get_logger().info(
+                    f"[PREDICT] vx 클램프 {st.vx:+.2f} -> {vx:+.2f}mm/s "
+                    f"(누적 {self._vx_clamp_count}회)"
+                )
+        return st.x + vx * ahead
+
     def _is_unreachable(self, track: dict) -> bool:
         """[9일차, v141] 이미 도달한계를 넘어선 트랙인가.
 
@@ -1786,7 +1844,7 @@ class TrackingNode(Node):
         total_ahead = extra_gap + predict_ahead_sec(
             item_key, self._motion_timing, self._gripper_profiles
         )
-        predicted_x = track["kf"].predict_position_at(total_ahead)
+        predicted_x = self._predict_x(track, total_ahead)
         bias = profile.get("prediction_bias_mm", 0.0)
         if bias:
             self.get_logger().info(f"[EXEC] applying prediction_bias_mm={bias} for {item_key}")
@@ -1992,7 +2050,28 @@ class TrackingNode(Node):
             # 구분**한다. bin행 품목도 같이 걸려 정상 캔이 가끔
             # review_bin으로 갈 수 있는데, 성가심 수준이고 안전 문제가
             # 아니므로 감수한다(v141 지시).
-            if net_weight is not None and net_weight < -0.03:
+            # [9일차, v142 선택항목] **파지폭 교차검증.**
+            # 그리퍼가 물체를 확실히 물고 있는데(파지 판정 True) net이
+            # 10g 미만이면 계측이 틀린 것이다 -- 물체가 있는데 무게가
+            # 안 잡혔다는 뜻이므로 baseline이 튀었을 가능성이 높다.
+            # 파지실패감지가 이미 읽는 신호를 재사용할 뿐 새 폴링은 없다.
+            # 실제로 적용되는 품목은 can뿐이다(weight_check가 정의된
+            # 품목 중 pet_labeled는 판정이 null이라 grasp_ok가 None).
+            if (
+                grasp_ok is True
+                and net_weight is not None
+                and net_weight < 0.010
+            ):
+                forced_bin = weight_check["review_bin"]
+                self.get_logger().warn(
+                    f"[EXEC] {item_key} 무게판정 신뢰불가(파지는 성공인데 "
+                    f"net={net_weight*1000:.1f}g < 10g) -- {forced_bin} 강제"
+                )
+                self._publish_ui_alert(
+                    "warn",
+                    f"{item_key} 파지·무게 불일치({net_weight*1000:.0f}g) — {forced_bin}으로 보냄",
+                )
+            elif net_weight is not None and net_weight < -0.03:
                 forced_bin = weight_check["review_bin"]
                 self.get_logger().warn(
                     f"[EXEC] {item_key} 무게판정 신뢰불가(net={net_weight*1000:.1f}g "
