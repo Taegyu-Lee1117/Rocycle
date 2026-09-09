@@ -1,0 +1,92 @@
+[INFO] [1788860395.914798555] [tracking_pick_node]: tracking_node up. calibration ready=True dry_run=False
+[INFO] [1788860461.235445053] [tracking_pick_node]: [VOICE] state=IDLE cmd='start'
+[INFO] [1788860461.235713740] [tracking_pick_node]: [VOICE] start: cleared 0 pre-run track(s); requiring fresh moving-belt detections
+[INFO] [1788860461.236033742] [tracking_pick_node]: [CONVEYOR] /conveyor_command -> START
+[INFO] [1788860461.236344707] [tracking_pick_node]: [TTS] 분리수거를 시작합니다.
+[INFO] [1788860475.394302825] [tracking_pick_node]: class=pet_labeled conf=0.55 anchor=(232.1,610.0) kf_x=243.7 kf_vx=0.00 pending=1 confirmed=False holding=False
+[INFO] [1788860475.529844647] [tracking_pick_node]: class=pet_labeled conf=0.72 anchor=(232.6,610.0) kf_x=243.9 kf_vx=0.04 pending=2 confirmed=False holding=False
+[INFO] [1788860475.662922352] [tracking_pick_node]: class=pet_labeled conf=0.66 anchor=(233.5,609.5) kf_x=244.3 kf_vx=2.57 pending=3 confirmed=False holding=False
+[INFO] [1788860475.795279856] [tracking_pick_node]: class=pet_labeled conf=0.69 anchor=(234.3,609.9) kf_x=244.8 kf_vx=3.07 pending=4 confirmed=False holding=False
+[INFO] [1788860475.932864085] [tracking_pick_node]: class=pet_labeled conf=0.75 anchor=(235.4,609.9) kf_x=245.4 kf_vx=3.56 pending=5 confirmed=False holding=False
+[INFO] [1788860476.062404039] [tracking_pick_node]: class=pet_labeled conf=0.80 anchor=(238.0,610.5) kf_x=246.4 kf_vx=5.04 pending=6 confirmed=False holding=False
+[INFO] [1788860476.194787442] [tracking_pick_node]: class=pet_labeled conf=0.82 anchor=(240.2,610.8) kf_x=247.6 kf_vx=6.01 pending=7 confirmed=False holding=False
+[INFO] [1788860476.330731459] [tracking_pick_node]: class=pet_labeled conf=0.79 anchor=(242.5,609.9) kf_x=248.7 kf_vx=6.59 pending=8 confirmed=False holding=False
+[INFO] [1788860476.462028882] [tracking_pick_node]: class=pet_labeled conf=0.80 anchor=(243.6,610.1) kf_x=249.6 kf_vx=6.68 pending=9 confirmed=True holding=False
+[INFO] [1788860476.462791002] [tracking_pick_node]: PICK TRIGGER class=pet_labeled predicted_pickup(preview)=[ 288.91254319 -348.92662529  319.81725893] dry_run=False remaining_tracks=0
+[INFO] [1788860476.463047275] [tracking_pick_node]: [EXEC] open gripper (approach 전 확인)
+[INFO] [1788860476.969971308] [tracking_pick_node]: [EXEC] force normalize for pet_labeled (첫 파지, 절대값 모름 -- 최대까지 올린 뒤 목표까지 내림)
+[INFO] [1788860477.928468829] [tracking_pick_node]: [EXEC] re-predicted after force-normalize: extra_gap=1.466s total_ahead=7.347s predicted_x=298.71 (힘정규화 지연 반영됨)
+[INFO] [1788860477.929231759] [tracking_pick_node]: [EXEC] move to hover [298.7072487363885, -264.0, 430.0, 179.78, 176.4, 89.78]
+[INFO] [1788860478.334068647] [tracking_pick_node]: [EXEC] descend 100mm
+[INFO] [1788860480.232032346] [tracking_pick_node]: [EXEC] close gripper
+[INFO] [1788860481.238008382] [tracking_pick_node]: [EXEC] rise 100mm
+[INFO] [1788860483.132005329] [tracking_pick_node]: [EXEC] pick complete, stopping conveyor for placement
+[INFO] [1788860483.132347509] [tracking_pick_node]: [CONVEYOR] /conveyor_command -> STOP
+[INFO] [1788860483.132804275] [tracking_pick_node]: [EXEC] pick complete for pet_labeled, placing...
+[INFO] [1788860483.134936838] [tracking_pick_node]: [HANDOFF] pet_labeled: rise 120.0mm to presentation height (같은 x/y 컬럼, 새 자세 탐색 안 함)
+[INFO] [1788860485.234287686] [tracking_pick_node]: [HANDOFF] entering compliance mode stx=[500.0, 500.0, 500.0, 100.0, 100.0, 100.0] (release_threshold_mm=10.0, timeout_sec=15.0)
+[INFO] [1788860485.737304064] [tracking_pick_node]: [HANDOFF] baseline captured, start_pos=[299.3, -264.2, 548.3]
+[INFO] [1788860486.039368930] [tracking_pick_node]: [HANDOFF] poll elapsed=0.30s pos=(299.6,-264.4,546.8) total_disp=0.4mm (3d=1.5mm) step_horiz=0.4mm step_vert=-1.5mm dt=0.30s speed_horiz=1.3mm/s fast_count=0/2
+[INFO] [1788860486.342411008] [tracking_pick_node]: [HANDOFF] poll elapsed=0.60s pos=(299.9,-264.6,545.4) total_disp=0.7mm (3d=3.0mm) step_horiz=0.3mm step_vert=-1.4mm dt=0.30s speed_horiz=1.1mm/s fast_count=0/2
+[INFO] [1788860486.645436296] [tracking_pick_node]: [HANDOFF] poll elapsed=0.91s pos=(300.0,-264.7,544.2) total_disp=0.9mm (3d=4.1mm) step_horiz=0.2mm step_vert=-1.2mm dt=0.30s speed_horiz=0.7mm/s fast_count=0/2
+[INFO] [1788860486.947516159] [tracking_pick_node]: [HANDOFF] poll elapsed=1.21s pos=(300.2,-264.9,543.3) total_disp=1.2mm (3d=5.1mm) step_horiz=0.2mm step_vert=-0.9mm dt=0.30s speed_horiz=0.8mm/s fast_count=0/2
+[INFO] [1788860487.250527107] [tracking_pick_node]: [HANDOFF] poll elapsed=1.51s pos=(300.4,-265.0,542.3) total_disp=1.4mm (3d=6.1mm) step_horiz=0.2mm step_vert=-1.0mm dt=0.30s speed_horiz=0.8mm/s fast_count=0/2
+[INFO] [1788860487.553182843] [tracking_pick_node]: [HANDOFF] poll elapsed=1.81s pos=(300.6,-265.1,541.4) total_disp=1.6mm (3d=7.0mm) step_horiz=0.2mm step_vert=-0.9mm dt=0.30s speed_horiz=0.7mm/s fast_count=0/2
+[INFO] [1788860487.855711191] [tracking_pick_node]: [HANDOFF] poll elapsed=2.12s pos=(300.7,-265.2,540.7) total_disp=1.8mm (3d=7.8mm) step_horiz=0.2mm step_vert=-0.8mm dt=0.30s speed_horiz=0.6mm/s fast_count=0/2
+[INFO] [1788860488.158575228] [tracking_pick_node]: [HANDOFF] poll elapsed=2.42s pos=(300.8,-265.3,540.0) total_disp=1.9mm (3d=8.5mm) step_horiz=0.1mm step_vert=-0.7mm dt=0.30s speed_horiz=0.4mm/s fast_count=0/2
+[INFO] [1788860488.462630101] [tracking_pick_node]: [HANDOFF] poll elapsed=2.72s pos=(300.9,-265.4,539.2) total_disp=2.0mm (3d=9.3mm) step_horiz=0.1mm step_vert=-0.8mm dt=0.30s speed_horiz=0.5mm/s fast_count=0/2
+[INFO] [1788860488.765654778] [tracking_pick_node]: [HANDOFF] poll elapsed=3.03s pos=(301.0,-265.5,538.7) total_disp=2.2mm (3d=9.8mm) step_horiz=0.1mm step_vert=-0.6mm dt=0.30s speed_horiz=0.4mm/s fast_count=0/2
+[INFO] [1788860489.069543150] [tracking_pick_node]: [HANDOFF] poll elapsed=3.33s pos=(301.1,-265.6,538.0) total_disp=2.3mm (3d=10.5mm) step_horiz=0.1mm step_vert=-0.6mm dt=0.30s speed_horiz=0.4mm/s fast_count=0/2
+[INFO] [1788860489.371894325] [tracking_pick_node]: [HANDOFF] poll elapsed=3.63s pos=(301.2,-265.6,537.5) total_disp=2.4mm (3d=11.0mm) step_horiz=0.1mm step_vert=-0.5mm dt=0.30s speed_horiz=0.3mm/s fast_count=0/2
+[INFO] [1788860489.674740772] [tracking_pick_node]: [HANDOFF] poll elapsed=3.94s pos=(301.3,-265.7,537.1) total_disp=2.5mm (3d=11.4mm) step_horiz=0.1mm step_vert=-0.5mm dt=0.30s speed_horiz=0.3mm/s fast_count=0/2
+[INFO] [1788860489.977691969] [tracking_pick_node]: [HANDOFF] poll elapsed=4.24s pos=(301.3,-265.7,536.6) total_disp=2.5mm (3d=11.9mm) step_horiz=0.0mm step_vert=-0.4mm dt=0.30s speed_horiz=0.1mm/s fast_count=0/2
+[INFO] [1788860490.279827466] [tracking_pick_node]: [HANDOFF] poll elapsed=4.54s pos=(301.3,-265.7,536.2) total_disp=2.5mm (3d=12.3mm) step_horiz=0.0mm step_vert=-0.4mm dt=0.30s speed_horiz=0.0mm/s fast_count=0/2
+[INFO] [1788860490.582752579] [tracking_pick_node]: [HANDOFF] poll elapsed=4.84s pos=(302.5,-265.4,535.9) total_disp=3.4mm (3d=12.8mm) step_horiz=1.2mm step_vert=-0.3mm dt=0.30s speed_horiz=4.0mm/s fast_count=1/2
+[INFO] [1788860490.884879326] [tracking_pick_node]: [HANDOFF] poll elapsed=5.15s pos=(305.2,-265.2,535.2) total_disp=6.0mm (3d=14.3mm) step_horiz=2.7mm step_vert=-0.7mm dt=0.30s speed_horiz=8.9mm/s fast_count=2/2
+[INFO] [1788860491.188255615] [tracking_pick_node]: [HANDOFF] poll elapsed=5.45s pos=(308.0,-265.1,534.6) total_disp=8.8mm (3d=16.2mm) step_horiz=2.8mm step_vert=-0.6mm dt=0.30s speed_horiz=9.4mm/s fast_count=3/2
+[INFO] [1788860491.491630492] [tracking_pick_node]: [HANDOFF] poll elapsed=5.75s pos=(310.5,-265.0,533.8) total_disp=11.3mm (3d=18.3mm) step_horiz=2.5mm step_vert=-0.8mm dt=0.30s speed_horiz=8.3mm/s fast_count=4/2
+[INFO] [1788860491.512675300] [tracking_pick_node]: [HANDOFF] pull detected: speed_horiz=8.3mm/s >= 3.0mm/s (4회 연속) AND total_disp=11.3mm > 10.0mm -- releasing
+[INFO] [1788860491.512944938] [tracking_pick_node]: [TTS] 전달 완료했습니다.
+[INFO] [1788860492.519149672] [tracking_pick_node]: [HANDOFF] releasing compliance mode
+[INFO] [1788860493.020342321] [tracking_pick_node]: [HANDOFF] returning to belt hover height
+[INFO] [1788860495.132807829] [tracking_pick_node]: [HANDOFF] pet_labeled handed off, restarting conveyor
+[INFO] [1788860495.133183265] [tracking_pick_node]: [CONVEYOR] /conveyor_command -> START
+[INFO] [1788860503.465149222] [tracking_pick_node]: [VOICE] state=RUNNING cmd='stop'
+[INFO] [1788860503.465582372] [tracking_pick_node]: [TTS] 작업을 종료합니다. 총 1개를 처리했습니다. pet_labeled 1개.
+[INFO] [1788860503.466054693] [tracking_pick_node]: [CONVEYOR] /conveyor_command -> STOP
+[INFO] [1788860580.992736407] [tracking_pick_node]: class=pet_labeled conf=0.82 anchor=(179.5,573.2) kf_x=212.3 kf_vx=0.00 pending=1 confirmed=False holding=False
+[INFO] [1788860581.123526069] [tracking_pick_node]: class=pet_labeled conf=0.59 anchor=(183.9,581.2) kf_x=215.5 kf_vx=0.41 pending=2 confirmed=False holding=False
+[INFO] [1788860581.392066427] [tracking_pick_node]: class=pet_labeled conf=0.61 anchor=(197.8,600.5) kf_x=224.6 kf_vx=32.97 pending=3 confirmed=False holding=False
+[INFO] [1788860581.523521739] [tracking_pick_node]: class=pet_labeled conf=0.62 anchor=(197.6,599.0) kf_x=225.9 kf_vx=23.96 pending=4 confirmed=False holding=False
+Traceback (most recent call last):
+  File "/home/rokey/Rocycle_Project/ros2_ws/install/rocycle_robot/lib/python3.12/site-packages/rocycle_robot/tracking_pick_node.py", line 1837, in main
+    rclpy.spin(node)
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/__init__.py", line 247, in spin
+    executor.spin_once()
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 926, in spin_once
+    self._spin_once_impl(timeout_sec)
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 907, in _spin_once_impl
+    handler, entity, node = self.wait_for_ready_callbacks(
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 877, in wait_for_ready_callbacks
+    return next(self._cb_iter)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 785, in _wait_for_ready_callbacks
+    raise ExternalShutdownException()
+rclpy.executors.ExternalShutdownException
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/rokey/Rocycle_Project/ros2_ws/install/rocycle_robot/lib/rocycle_robot/tracking_pick_node", line 33, in <module>
+    sys.exit(load_entry_point('rocycle_robot==0.0.1', 'console_scripts', 'tracking_pick_node')())
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rokey/Rocycle_Project/ros2_ws/install/rocycle_robot/lib/python3.12/site-packages/rocycle_robot/tracking_pick_node.py", line 1842, in main
+    rclpy.shutdown()
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/__init__.py", line 134, in shutdown
+    _shutdown(context=context)
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/utilities.py", line 82, in shutdown
+    context.shutdown()
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/context.py", line 129, in shutdown
+    self.__context.shutdown()
+rclpy._rclpy_pybind11.RCLError: failed to shutdown: rcl_shutdown already called on the given context, at ./src/rcl/init.c:333

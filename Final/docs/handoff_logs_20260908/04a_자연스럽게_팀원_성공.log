@@ -1,0 +1,509 @@
+[INFO] [1788860619.503784552] [tracking_pick_node]: tracking_node up. calibration ready=True dry_run=False
+[INFO] [1788860665.894225979] [tracking_pick_node]: [VOICE] state=IDLE cmd='start'
+[INFO] [1788860665.894481273] [tracking_pick_node]: [VOICE] start: cleared 0 pre-run track(s); requiring fresh moving-belt detections
+[INFO] [1788860665.895005003] [tracking_pick_node]: [CONVEYOR] /conveyor_command -> START
+[INFO] [1788860665.895418146] [tracking_pick_node]: [TTS] 분리수거를 시작합니다.
+[INFO] [1788860668.721155028] [tracking_pick_node]: class=pet_labeled conf=0.63 anchor=(201.2,592.1) kf_x=225.8 kf_vx=0.00 pending=1 confirmed=False holding=False
+[INFO] [1788860668.852171976] [tracking_pick_node]: class=pet_labeled conf=0.58 anchor=(206.1,592.2) kf_x=228.4 kf_vx=0.34 pending=2 confirmed=False holding=False
+[INFO] [1788860668.984493528] [tracking_pick_node]: class=pet_labeled conf=0.62 anchor=(203.4,592.4) kf_x=227.1 kf_vx=-8.69 pending=3 confirmed=False holding=False
+[INFO] [1788860669.126186220] [tracking_pick_node]: class=pet_labeled conf=0.62 anchor=(199.4,592.4) kf_x=225.1 kf_vx=-12.03 pending=4 confirmed=False holding=False
+[INFO] [1788860669.252286790] [tracking_pick_node]: class=pet_labeled conf=0.59 anchor=(206.8,592.6) kf_x=227.1 kf_vx=-0.79 pending=5 confirmed=False holding=False
+[INFO] [1788860669.387573032] [tracking_pick_node]: class=pet_labeled conf=0.73 anchor=(213.9,591.2) kf_x=230.1 kf_vx=7.08 pending=6 confirmed=False holding=False
+[INFO] [1788860669.519952397] [tracking_pick_node]: class=pet_labeled conf=0.78 anchor=(215.0,591.0) kf_x=232.0 kf_vx=9.03 pending=7 confirmed=False holding=False
+[INFO] [1788860669.662043057] [tracking_pick_node]: class=pet_labeled conf=0.78 anchor=(215.9,591.1) kf_x=233.3 kf_vx=9.05 pending=8 confirmed=False holding=False
+[INFO] [1788860669.787162638] [tracking_pick_node]: class=pet_labeled conf=0.77 anchor=(196.3,592.5) kf_x=229.9 kf_vx=2.16 pending=9 confirmed=True holding=False
+[INFO] [1788860669.788274241] [tracking_pick_node]: PICK TRIGGER class=pet_labeled predicted_pickup(preview)=[ 242.53682021 -337.98227656  319.72362653] dry_run=False remaining_tracks=0
+[INFO] [1788860669.788698113] [tracking_pick_node]: [EXEC] open gripper (approach 전 확인)
+[INFO] [1788860670.297160811] [tracking_pick_node]: [EXEC] force normalize for pet_labeled (첫 파지, 절대값 모름 -- 최대까지 올린 뒤 목표까지 내림)
+[INFO] [1788860671.247408663] [tracking_pick_node]: [EXEC] re-predicted after force-normalize: extra_gap=1.461s total_ahead=7.342s predicted_x=245.69 (힘정규화 지연 반영됨)
+[INFO] [1788860671.247799843] [tracking_pick_node]: [EXEC] move to hover [245.6872099898576, -264.0, 430.0, 179.78, 176.4, 89.78]
+[INFO] [1788860672.747299320] [tracking_pick_node]: [EXEC] descend 100mm
+[INFO] [1788860674.645169837] [tracking_pick_node]: [EXEC] close gripper
+[INFO] [1788860675.657880080] [tracking_pick_node]: [EXEC] rise 100mm
+[INFO] [1788860677.545510645] [tracking_pick_node]: [EXEC] pick complete, stopping conveyor for placement
+[INFO] [1788860677.545857880] [tracking_pick_node]: [CONVEYOR] /conveyor_command -> STOP
+[INFO] [1788860677.546366442] [tracking_pick_node]: [EXEC] pick complete for pet_labeled, placing...
+[INFO] [1788860677.548307827] [tracking_pick_node]: [HANDOFF] pet_labeled: rise 120.0mm to presentation height (같은 x/y 컬럼, 새 자세 탐색 안 함)
+[INFO] [1788860679.647713966] [tracking_pick_node]: [HANDOFF] entering compliance mode stx=[500.0, 500.0, 500.0, 100.0, 100.0, 100.0] (release_threshold_mm=10.0, timeout_sec=15.0)
+[INFO] [1788860680.150752759] [tracking_pick_node]: [HANDOFF] baseline captured, start_pos=[246.1, -264.3, 548.3]
+[INFO] [1788860680.453207123] [tracking_pick_node]: [HANDOFF] poll elapsed=0.30s pos=(246.4,-264.5,546.8) total_disp=0.3mm (3d=1.6mm) step_horiz=0.3mm step_vert=-1.5mm dt=0.30s speed_horiz=1.1mm/s fast_count=0/2
+[INFO] [1788860680.757218500] [tracking_pick_node]: [HANDOFF] poll elapsed=0.60s pos=(246.6,-264.7,545.5) total_disp=0.6mm (3d=2.9mm) step_horiz=0.3mm step_vert=-1.3mm dt=0.30s speed_horiz=0.9mm/s fast_count=0/2
+[INFO] [1788860681.059933220] [tracking_pick_node]: [HANDOFF] poll elapsed=0.91s pos=(246.8,-264.8,544.4) total_disp=0.8mm (3d=4.0mm) step_horiz=0.2mm step_vert=-1.1mm dt=0.30s speed_horiz=0.7mm/s fast_count=0/2
+[INFO] [1788860681.363074731] [tracking_pick_node]: [HANDOFF] poll elapsed=1.21s pos=(246.9,-265.0,543.5) total_disp=1.1mm (3d=5.0mm) step_horiz=0.2mm step_vert=-1.0mm dt=0.30s speed_horiz=0.7mm/s fast_count=0/2
+[INFO] [1788860681.665848768] [tracking_pick_node]: [HANDOFF] poll elapsed=1.51s pos=(247.1,-265.1,542.5) total_disp=1.3mm (3d=6.0mm) step_horiz=0.2mm step_vert=-1.0mm dt=0.30s speed_horiz=0.7mm/s fast_count=0/2
+[INFO] [1788860681.969115202] [tracking_pick_node]: [HANDOFF] poll elapsed=1.82s pos=(247.2,-265.2,541.7) total_disp=1.5mm (3d=6.8mm) step_horiz=0.2mm step_vert=-0.8mm dt=0.30s speed_horiz=0.7mm/s fast_count=0/2
+[INFO] [1788860682.272068143] [tracking_pick_node]: [HANDOFF] poll elapsed=2.12s pos=(247.3,-265.3,540.9) total_disp=1.6mm (3d=7.7mm) step_horiz=0.1mm step_vert=-0.8mm dt=0.30s speed_horiz=0.5mm/s fast_count=0/2
+[INFO] [1788860682.574903270] [tracking_pick_node]: [HANDOFF] poll elapsed=2.42s pos=(247.4,-265.4,540.2) total_disp=1.7mm (3d=8.3mm) step_horiz=0.1mm step_vert=-0.7mm dt=0.30s speed_horiz=0.5mm/s fast_count=0/2
+[INFO] [1788860682.876896261] [tracking_pick_node]: [HANDOFF] poll elapsed=2.72s pos=(247.5,-265.6,539.5) total_disp=1.9mm (3d=9.1mm) step_horiz=0.1mm step_vert=-0.7mm dt=0.30s speed_horiz=0.5mm/s fast_count=0/2
+[INFO] [1788860683.180406241] [tracking_pick_node]: [HANDOFF] poll elapsed=3.03s pos=(247.6,-265.6,538.9) total_disp=2.0mm (3d=9.7mm) step_horiz=0.1mm step_vert=-0.6mm dt=0.30s speed_horiz=0.4mm/s fast_count=0/2
+[INFO] [1788860683.483043612] [tracking_pick_node]: [HANDOFF] poll elapsed=3.33s pos=(247.7,-265.7,538.3) total_disp=2.1mm (3d=10.2mm) step_horiz=0.1mm step_vert=-0.5mm dt=0.30s speed_horiz=0.3mm/s fast_count=0/2
+[INFO] [1788860683.786020395] [tracking_pick_node]: [HANDOFF] poll elapsed=3.63s pos=(247.7,-265.8,537.7) total_disp=2.2mm (3d=10.8mm) step_horiz=0.1mm step_vert=-0.6mm dt=0.30s speed_horiz=0.3mm/s fast_count=0/2
+[INFO] [1788860684.089015317] [tracking_pick_node]: [HANDOFF] poll elapsed=3.94s pos=(247.8,-265.8,537.3) total_disp=2.3mm (3d=11.3mm) step_horiz=0.1mm step_vert=-0.4mm dt=0.30s speed_horiz=0.2mm/s fast_count=0/2
+[INFO] [1788860684.391029950] [tracking_pick_node]: [HANDOFF] poll elapsed=4.24s pos=(247.8,-265.9,536.9) total_disp=2.3mm (3d=11.7mm) step_horiz=0.1mm step_vert=-0.5mm dt=0.30s speed_horiz=0.2mm/s fast_count=0/2
+[INFO] [1788860684.693984744] [tracking_pick_node]: [HANDOFF] poll elapsed=4.54s pos=(247.9,-265.9,536.4) total_disp=2.4mm (3d=12.2mm) step_horiz=0.1mm step_vert=-0.5mm dt=0.30s speed_horiz=0.2mm/s fast_count=0/2
+[INFO] [1788860684.996080448] [tracking_pick_node]: [HANDOFF] poll elapsed=4.84s pos=(247.9,-266.0,536.0) total_disp=2.4mm (3d=12.6mm) step_horiz=0.1mm step_vert=-0.4mm dt=0.30s speed_horiz=0.2mm/s fast_count=0/2
+[INFO] [1788860685.299028443] [tracking_pick_node]: [HANDOFF] poll elapsed=5.15s pos=(247.9,-266.0,535.6) total_disp=2.5mm (3d=13.0mm) step_horiz=0.1mm step_vert=-0.3mm dt=0.30s speed_horiz=0.2mm/s fast_count=0/2
+[INFO] [1788860685.601128785] [tracking_pick_node]: [HANDOFF] poll elapsed=5.45s pos=(248.0,-266.0,535.3) total_disp=2.5mm (3d=13.3mm) step_horiz=0.0mm step_vert=-0.4mm dt=0.30s speed_horiz=0.1mm/s fast_count=0/2
+[INFO] [1788860685.904515701] [tracking_pick_node]: [HANDOFF] poll elapsed=5.75s pos=(248.0,-266.1,534.9) total_disp=2.6mm (3d=13.7mm) step_horiz=0.0mm step_vert=-0.3mm dt=0.30s speed_horiz=0.1mm/s fast_count=0/2
+[INFO] [1788860686.207229649] [tracking_pick_node]: [HANDOFF] poll elapsed=6.05s pos=(248.0,-266.1,534.6) total_disp=2.6mm (3d=14.0mm) step_horiz=0.0mm step_vert=-0.3mm dt=0.30s speed_horiz=0.0mm/s fast_count=0/2
+[INFO] [1788860686.510234756] [tracking_pick_node]: [HANDOFF] poll elapsed=6.36s pos=(248.0,-266.0,534.3) total_disp=2.5mm (3d=14.2mm) step_horiz=0.0mm step_vert=-0.3mm dt=0.30s speed_horiz=0.0mm/s fast_count=0/2
+[INFO] [1788860686.813502135] [tracking_pick_node]: [HANDOFF] poll elapsed=6.66s pos=(248.0,-266.0,534.2) total_disp=2.5mm (3d=14.4mm) step_horiz=0.0mm step_vert=-0.2mm dt=0.30s speed_horiz=0.1mm/s fast_count=0/2
+[INFO] [1788860687.118252766] [tracking_pick_node]: [HANDOFF] poll elapsed=6.96s pos=(248.0,-266.0,533.9) total_disp=2.5mm (3d=14.7mm) step_horiz=0.0mm step_vert=-0.3mm dt=0.30s speed_horiz=0.0mm/s fast_count=0/2
+[INFO] [1788860687.421537498] [tracking_pick_node]: [HANDOFF] poll elapsed=7.27s pos=(248.0,-266.0,533.6) total_disp=2.5mm (3d=15.0mm) step_horiz=0.0mm step_vert=-0.3mm dt=0.30s speed_horiz=0.0mm/s fast_count=0/2
+[INFO] [1788860687.724690652] [tracking_pick_node]: [HANDOFF] poll elapsed=7.57s pos=(247.9,-266.0,533.3) total_disp=2.5mm (3d=15.2mm) step_horiz=0.0mm step_vert=-0.3mm dt=0.30s speed_horiz=0.0mm/s fast_count=0/2
+[INFO] [1788860688.027723673] [tracking_pick_node]: [HANDOFF] poll elapsed=7.87s pos=(247.9,-266.0,533.1) total_disp=2.5mm (3d=15.5mm) step_horiz=0.0mm step_vert=-0.2mm dt=0.30s speed_horiz=0.1mm/s fast_count=0/2
+[INFO] [1788860688.331966227] [tracking_pick_node]: [HANDOFF] poll elapsed=8.18s pos=(247.9,-266.0,532.9) total_disp=2.4mm (3d=15.6mm) step_horiz=0.1mm step_vert=-0.1mm dt=0.30s speed_horiz=0.2mm/s fast_count=0/2
+[INFO] [1788860688.634371741] [tracking_pick_node]: [HANDOFF] poll elapsed=8.48s pos=(247.8,-265.9,532.8) total_disp=2.4mm (3d=15.7mm) step_horiz=0.1mm step_vert=-0.2mm dt=0.30s speed_horiz=0.2mm/s fast_count=0/2
+[INFO] [1788860688.937705768] [tracking_pick_node]: [HANDOFF] poll elapsed=8.78s pos=(247.8,-265.9,532.6) total_disp=2.3mm (3d=16.0mm) step_horiz=0.0mm step_vert=-0.2mm dt=0.30s speed_horiz=0.1mm/s fast_count=0/2
+[INFO] [1788860689.240585462] [tracking_pick_node]: [HANDOFF] poll elapsed=9.09s pos=(247.8,-265.9,532.4) total_disp=2.3mm (3d=16.1mm) step_horiz=0.0mm step_vert=-0.2mm dt=0.30s speed_horiz=0.1mm/s fast_count=0/2
+[INFO] [1788860689.543944091] [tracking_pick_node]: [HANDOFF] poll elapsed=9.39s pos=(247.7,-265.9,532.1) total_disp=2.2mm (3d=16.4mm) step_horiz=0.1mm step_vert=-0.2mm dt=0.30s speed_horiz=0.2mm/s fast_count=0/2
+[INFO] [1788860689.846899453] [tracking_pick_node]: [HANDOFF] poll elapsed=9.69s pos=(248.6,-265.6,532.1) total_disp=2.8mm (3d=16.5mm) step_horiz=0.9mm step_vert=-0.1mm dt=0.30s speed_horiz=2.9mm/s fast_count=0/2
+[INFO] [1788860690.149426171] [tracking_pick_node]: [HANDOFF] poll elapsed=10.00s pos=(250.5,-265.4,531.7) total_disp=4.5mm (3d=17.2mm) step_horiz=1.9mm step_vert=-0.3mm dt=0.30s speed_horiz=6.3mm/s fast_count=1/2
+[INFO] [1788860690.452448154] [tracking_pick_node]: [HANDOFF] poll elapsed=10.30s pos=(252.3,-265.3,531.5) total_disp=6.3mm (3d=18.0mm) step_horiz=1.9mm step_vert=-0.2mm dt=0.30s speed_horiz=6.1mm/s fast_count=2/2
+[INFO] [1788860690.754645899] [tracking_pick_node]: [HANDOFF] poll elapsed=10.60s pos=(253.9,-265.2,531.2) total_disp=7.8mm (3d=18.8mm) step_horiz=1.6mm step_vert=-0.3mm dt=0.30s speed_horiz=5.2mm/s fast_count=3/2
+[INFO] [1788860691.057432898] [tracking_pick_node]: [HANDOFF] poll elapsed=10.90s pos=(255.3,-265.1,530.9) total_disp=9.2mm (3d=19.7mm) step_horiz=1.4mm step_vert=-0.3mm dt=0.30s speed_horiz=4.7mm/s fast_count=4/2
+[INFO] [1788860691.360396846] [tracking_pick_node]: [HANDOFF] poll elapsed=11.21s pos=(256.7,-265.0,530.6) total_disp=10.6mm (3d=20.7mm) step_horiz=1.4mm step_vert=-0.4mm dt=0.30s speed_horiz=4.5mm/s fast_count=5/2
+[INFO] [1788860691.360779850] [tracking_pick_node]: [HANDOFF] pull detected: speed_horiz=4.5mm/s >= 3.0mm/s (5회 연속) AND total_disp=10.6mm > 10.0mm -- releasing
+[INFO] [1788860691.360938242] [tracking_pick_node]: [TTS] 전달 완료했습니다.
+[INFO] [1788860692.370158982] [tracking_pick_node]: [HANDOFF] releasing compliance mode
+[INFO] [1788860692.871165591] [tracking_pick_node]: [HANDOFF] returning to belt hover height
+[INFO] [1788860694.946731223] [tracking_pick_node]: [HANDOFF] pet_labeled handed off, restarting conveyor
+[INFO] [1788860694.947111316] [tracking_pick_node]: [CONVEYOR] /conveyor_command -> START
+[INFO] [1788860706.020964423] [tracking_pick_node]: [VOICE] state=RUNNING cmd='stop'
+[INFO] [1788860706.021294309] [tracking_pick_node]: [TTS] 작업을 종료합니다. 총 1개를 처리했습니다. pet_labeled 1개.
+[INFO] [1788860706.021628631] [tracking_pick_node]: [CONVEYOR] /conveyor_command -> STOP
+[INFO] [1788860774.979610400] [tracking_pick_node]: class=pet_labeled conf=0.85 anchor=(457.6,603.9) kf_x=362.2 kf_vx=0.00 pending=1 confirmed=False holding=False
+[INFO] [1788860775.379876079] [tracking_pick_node]: class=pet_labeled conf=0.56 anchor=(152.8,625.4) kf_x=204.6 kf_vx=-54.34 pending=2 confirmed=False holding=False
+[INFO] [1788860775.511568177] [tracking_pick_node]: class=pet_labeled conf=0.76 anchor=(145.8,624.5) kf_x=200.3 kf_vx=-35.21 pending=3 confirmed=False holding=False
+[INFO] [1788860775.644065173] [tracking_pick_node]: class=pet_labeled conf=0.66 anchor=(153.8,627.3) kf_x=203.2 kf_vx=-1.82 pending=4 confirmed=False holding=False
+[INFO] [1788860775.911817215] [tracking_pick_node]: class=pet_labeled conf=0.85 anchor=(130.8,627.8) kf_x=195.1 kf_vx=-19.64 pending=5 confirmed=False holding=False
+[INFO] [1788860776.042959598] [tracking_pick_node]: class=pet_labeled conf=0.93 anchor=(137.5,627.9) kf_x=195.0 kf_vx=-14.74 pending=6 confirmed=False holding=False
+[INFO] [1788860776.180467261] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,628.0) kf_x=194.9 kf_vx=-11.69 pending=7 confirmed=False holding=False
+[INFO] [1788860776.312951702] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,627.9) kf_x=194.8 kf_vx=-9.55 pending=8 confirmed=False holding=False
+[INFO] [1788860776.444552367] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.5,628.0) kf_x=194.8 kf_vx=-7.94 pending=9 confirmed=True holding=False
+[INFO] [1788860776.580196939] [tracking_pick_node]: class=pet_labeled conf=0.93 anchor=(137.4,627.9) kf_x=194.8 kf_vx=-6.69 pending=10 confirmed=True holding=False
+[INFO] [1788860776.714555334] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.5,627.9) kf_x=194.8 kf_vx=-5.69 pending=11 confirmed=True holding=False
+[INFO] [1788860776.848996606] [tracking_pick_node]: class=pet_labeled conf=0.93 anchor=(137.2,627.9) kf_x=194.8 kf_vx=-4.92 pending=12 confirmed=True holding=False
+[INFO] [1788860776.979201485] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,627.8) kf_x=194.9 kf_vx=-4.29 pending=13 confirmed=True holding=False
+[INFO] [1788860777.113583234] [tracking_pick_node]: class=pet_labeled conf=0.93 anchor=(137.3,627.9) kf_x=194.9 kf_vx=-3.76 pending=14 confirmed=True holding=False
+[INFO] [1788860777.244504447] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,627.8) kf_x=195.0 kf_vx=-3.32 pending=15 confirmed=True holding=False
+[INFO] [1788860777.381408871] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,627.9) kf_x=195.1 kf_vx=-2.94 pending=16 confirmed=True holding=False
+[INFO] [1788860777.515556079] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,627.8) kf_x=195.1 kf_vx=-2.63 pending=17 confirmed=True holding=False
+[INFO] [1788860777.643210406] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,627.8) kf_x=195.2 kf_vx=-2.37 pending=18 confirmed=True holding=False
+[INFO] [1788860777.780630035] [tracking_pick_node]: class=pet_labeled conf=0.93 anchor=(137.3,627.8) kf_x=195.2 kf_vx=-2.14 pending=19 confirmed=True holding=False
+[INFO] [1788860777.910956040] [tracking_pick_node]: class=pet_labeled conf=0.93 anchor=(137.3,627.8) kf_x=195.3 kf_vx=-1.94 pending=20 confirmed=True holding=False
+[INFO] [1788860778.044467805] [tracking_pick_node]: class=pet_labeled conf=0.93 anchor=(137.3,627.8) kf_x=195.3 kf_vx=-1.76 pending=21 confirmed=True holding=False
+[INFO] [1788860778.179406379] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,627.8) kf_x=195.4 kf_vx=-1.60 pending=22 confirmed=True holding=False
+[INFO] [1788860778.318071208] [tracking_pick_node]: class=pet_labeled conf=0.93 anchor=(137.3,627.8) kf_x=195.4 kf_vx=-1.47 pending=23 confirmed=True holding=False
+[INFO] [1788860778.443436135] [tracking_pick_node]: class=pet_labeled conf=0.93 anchor=(137.2,627.8) kf_x=195.5 kf_vx=-1.35 pending=24 confirmed=True holding=False
+[INFO] [1788860778.581050054] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,627.7) kf_x=195.5 kf_vx=-1.24 pending=25 confirmed=True holding=False
+[INFO] [1788860778.712334004] [tracking_pick_node]: class=pet_labeled conf=0.93 anchor=(137.3,627.7) kf_x=195.5 kf_vx=-1.14 pending=26 confirmed=True holding=False
+[INFO] [1788860778.842894867] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,627.9) kf_x=195.6 kf_vx=-1.05 pending=27 confirmed=True holding=False
+[INFO] [1788860778.979649452] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.1,627.7) kf_x=195.6 kf_vx=-0.98 pending=28 confirmed=True holding=False
+[INFO] [1788860779.111229181] [tracking_pick_node]: class=pet_labeled conf=0.93 anchor=(137.3,627.7) kf_x=195.7 kf_vx=-0.91 pending=29 confirmed=True holding=False
+[INFO] [1788860779.242840423] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,627.8) kf_x=195.7 kf_vx=-0.84 pending=30 confirmed=True holding=False
+[INFO] [1788860779.378928311] [tracking_pick_node]: class=pet_labeled conf=0.93 anchor=(137.3,627.8) kf_x=195.7 kf_vx=-0.78 pending=31 confirmed=True holding=False
+[INFO] [1788860779.511106229] [tracking_pick_node]: class=pet_labeled conf=0.93 anchor=(137.3,627.8) kf_x=195.8 kf_vx=-0.73 pending=32 confirmed=True holding=False
+[INFO] [1788860779.643432539] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,627.7) kf_x=195.8 kf_vx=-0.68 pending=33 confirmed=True holding=False
+[INFO] [1788860779.779561669] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,627.7) kf_x=195.8 kf_vx=-0.63 pending=34 confirmed=True holding=False
+[INFO] [1788860779.913232434] [tracking_pick_node]: class=pet_labeled conf=0.93 anchor=(137.3,627.7) kf_x=195.8 kf_vx=-0.59 pending=35 confirmed=True holding=False
+[INFO] [1788860780.043581012] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,627.7) kf_x=195.9 kf_vx=-0.55 pending=36 confirmed=True holding=False
+[INFO] [1788860780.184991289] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,627.7) kf_x=195.9 kf_vx=-0.51 pending=37 confirmed=True holding=False
+[INFO] [1788860780.314258921] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,627.7) kf_x=195.9 kf_vx=-0.48 pending=38 confirmed=True holding=False
+[INFO] [1788860780.446517857] [tracking_pick_node]: class=pet_labeled conf=0.93 anchor=(137.2,627.7) kf_x=195.9 kf_vx=-0.45 pending=39 confirmed=True holding=False
+[INFO] [1788860780.581928171] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,627.7) kf_x=196.0 kf_vx=-0.42 pending=40 confirmed=True holding=False
+[INFO] [1788860780.712828609] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,627.7) kf_x=196.0 kf_vx=-0.39 pending=41 confirmed=True holding=False
+[INFO] [1788860780.843115032] [tracking_pick_node]: class=pet_labeled conf=0.93 anchor=(137.3,627.7) kf_x=196.0 kf_vx=-0.37 pending=42 confirmed=True holding=False
+[INFO] [1788860780.979888657] [tracking_pick_node]: class=pet_labeled conf=0.93 anchor=(137.2,627.7) kf_x=196.0 kf_vx=-0.34 pending=43 confirmed=True holding=False
+[INFO] [1788860781.112350705] [tracking_pick_node]: class=pet_labeled conf=0.93 anchor=(137.3,627.8) kf_x=196.1 kf_vx=-0.32 pending=44 confirmed=True holding=False
+[INFO] [1788860781.243092420] [tracking_pick_node]: class=pet_labeled conf=0.93 anchor=(137.2,627.7) kf_x=196.1 kf_vx=-0.30 pending=45 confirmed=True holding=False
+[INFO] [1788860781.382762005] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,627.7) kf_x=196.1 kf_vx=-0.28 pending=46 confirmed=True holding=False
+[INFO] [1788860781.511726057] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,627.7) kf_x=196.1 kf_vx=-0.26 pending=47 confirmed=True holding=False
+[INFO] [1788860781.643112087] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,627.7) kf_x=196.2 kf_vx=-0.24 pending=48 confirmed=True holding=False
+[INFO] [1788860781.779496279] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,627.7) kf_x=196.2 kf_vx=-0.22 pending=49 confirmed=True holding=False
+[INFO] [1788860781.914472187] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,627.7) kf_x=196.2 kf_vx=-0.21 pending=50 confirmed=True holding=False
+[INFO] [1788860782.044030281] [tracking_pick_node]: class=pet_labeled conf=0.93 anchor=(137.3,627.7) kf_x=196.2 kf_vx=-0.19 pending=51 confirmed=True holding=False
+[INFO] [1788860782.179579465] [tracking_pick_node]: class=pet_labeled conf=0.93 anchor=(137.2,627.7) kf_x=196.2 kf_vx=-0.18 pending=52 confirmed=True holding=False
+[INFO] [1788860782.313969444] [tracking_pick_node]: class=pet_labeled conf=0.93 anchor=(137.2,627.7) kf_x=196.3 kf_vx=-0.16 pending=53 confirmed=True holding=False
+[INFO] [1788860782.443523297] [tracking_pick_node]: class=pet_labeled conf=0.93 anchor=(137.3,627.7) kf_x=196.3 kf_vx=-0.15 pending=54 confirmed=True holding=False
+[INFO] [1788860782.584135949] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,627.8) kf_x=196.3 kf_vx=-0.13 pending=55 confirmed=True holding=False
+[INFO] [1788860782.711119176] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,627.7) kf_x=196.3 kf_vx=-0.12 pending=56 confirmed=True holding=False
+[INFO] [1788860782.844007203] [tracking_pick_node]: class=pet_labeled conf=0.93 anchor=(137.2,627.7) kf_x=196.3 kf_vx=-0.11 pending=57 confirmed=True holding=False
+[INFO] [1788860782.981181016] [tracking_pick_node]: class=pet_labeled conf=0.93 anchor=(137.3,627.7) kf_x=196.3 kf_vx=-0.10 pending=58 confirmed=True holding=False
+[INFO] [1788860783.113912590] [tracking_pick_node]: class=pet_labeled conf=0.93 anchor=(137.1,627.6) kf_x=196.4 kf_vx=-0.09 pending=59 confirmed=True holding=False
+[INFO] [1788860783.244048334] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,627.7) kf_x=196.4 kf_vx=-0.08 pending=60 confirmed=True holding=False
+[INFO] [1788860783.381568353] [tracking_pick_node]: class=pet_labeled conf=0.93 anchor=(137.3,627.7) kf_x=196.4 kf_vx=-0.07 pending=61 confirmed=True holding=False
+[INFO] [1788860783.519061675] [tracking_pick_node]: class=pet_labeled conf=0.93 anchor=(137.3,627.7) kf_x=196.4 kf_vx=-0.06 pending=62 confirmed=True holding=False
+[INFO] [1788860783.643437531] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,627.7) kf_x=196.4 kf_vx=-0.06 pending=63 confirmed=True holding=False
+[INFO] [1788860783.779021932] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,627.7) kf_x=196.4 kf_vx=-0.05 pending=64 confirmed=True holding=False
+[INFO] [1788860783.911553697] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,627.6) kf_x=196.5 kf_vx=-0.04 pending=65 confirmed=True holding=False
+[INFO] [1788860784.043251869] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,627.7) kf_x=196.5 kf_vx=-0.03 pending=66 confirmed=True holding=False
+[INFO] [1788860784.180034678] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,627.6) kf_x=196.5 kf_vx=-0.03 pending=67 confirmed=True holding=False
+[INFO] [1788860784.313628634] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,627.6) kf_x=196.5 kf_vx=-0.02 pending=68 confirmed=True holding=False
+[INFO] [1788860784.445289222] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,627.6) kf_x=196.5 kf_vx=-0.01 pending=69 confirmed=True holding=False
+[INFO] [1788860784.582477836] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,627.6) kf_x=196.5 kf_vx=-0.01 pending=70 confirmed=True holding=False
+[INFO] [1788860784.713325017] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,627.6) kf_x=196.5 kf_vx=-0.01 pending=71 confirmed=True holding=False
+[INFO] [1788860784.845648965] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,627.5) kf_x=196.6 kf_vx=-0.00 pending=72 confirmed=True holding=False
+[INFO] [1788860784.980244408] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,627.4) kf_x=196.6 kf_vx=-0.00 pending=73 confirmed=True holding=False
+[INFO] [1788860785.111684818] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,627.4) kf_x=196.6 kf_vx=0.00 pending=74 confirmed=True holding=False
+[INFO] [1788860785.243743131] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,627.5) kf_x=196.6 kf_vx=0.00 pending=75 confirmed=True holding=False
+[INFO] [1788860785.380130007] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,627.5) kf_x=196.6 kf_vx=0.01 pending=76 confirmed=True holding=False
+[INFO] [1788860785.511167317] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,627.5) kf_x=196.6 kf_vx=0.01 pending=77 confirmed=True holding=False
+[INFO] [1788860785.644169168] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,627.5) kf_x=196.6 kf_vx=0.01 pending=78 confirmed=True holding=False
+[INFO] [1788860785.779903590] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,627.5) kf_x=196.6 kf_vx=0.01 pending=79 confirmed=True holding=False
+[INFO] [1788860785.913482618] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,627.6) kf_x=196.6 kf_vx=0.01 pending=80 confirmed=True holding=False
+[INFO] [1788860786.043401145] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,627.6) kf_x=196.6 kf_vx=0.01 pending=81 confirmed=True holding=False
+[INFO] [1788860786.181083844] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,627.6) kf_x=196.6 kf_vx=0.02 pending=82 confirmed=True holding=False
+[INFO] [1788860786.311295031] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,627.6) kf_x=196.6 kf_vx=0.02 pending=83 confirmed=True holding=False
+[INFO] [1788860786.443420688] [tracking_pick_node]: class=pet_labeled conf=0.93 anchor=(137.1,627.5) kf_x=196.6 kf_vx=0.02 pending=84 confirmed=True holding=False
+[INFO] [1788860786.580346338] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,627.5) kf_x=196.6 kf_vx=0.02 pending=85 confirmed=True holding=False
+[INFO] [1788860786.711990072] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,627.5) kf_x=196.6 kf_vx=0.02 pending=86 confirmed=True holding=False
+[INFO] [1788860786.844443198] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,627.5) kf_x=196.6 kf_vx=0.02 pending=87 confirmed=True holding=False
+[INFO] [1788860786.977687317] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,627.4) kf_x=196.6 kf_vx=0.02 pending=88 confirmed=True holding=False
+[INFO] [1788860787.112406505] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,627.4) kf_x=196.6 kf_vx=0.02 pending=89 confirmed=True holding=False
+[INFO] [1788860787.243259322] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,627.3) kf_x=196.6 kf_vx=0.02 pending=90 confirmed=True holding=False
+[INFO] [1788860787.377951500] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,627.3) kf_x=196.6 kf_vx=0.02 pending=91 confirmed=True holding=False
+[INFO] [1788860787.511910814] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,627.2) kf_x=196.7 kf_vx=0.02 pending=92 confirmed=True holding=False
+[INFO] [1788860787.644323480] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.1,627.2) kf_x=196.6 kf_vx=0.02 pending=93 confirmed=True holding=False
+[INFO] [1788860787.777601607] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,627.3) kf_x=196.6 kf_vx=0.02 pending=94 confirmed=True holding=False
+[INFO] [1788860787.914301415] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,627.3) kf_x=196.6 kf_vx=0.01 pending=95 confirmed=True holding=False
+[INFO] [1788860788.043227034] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.1,627.3) kf_x=196.6 kf_vx=0.01 pending=96 confirmed=True holding=False
+[INFO] [1788860788.175749479] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,627.2) kf_x=196.6 kf_vx=0.01 pending=97 confirmed=True holding=False
+[INFO] [1788860788.311932885] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,627.3) kf_x=196.6 kf_vx=0.01 pending=98 confirmed=True holding=False
+[INFO] [1788860788.446373217] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,627.3) kf_x=196.6 kf_vx=0.01 pending=99 confirmed=True holding=False
+[INFO] [1788860788.576023610] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,627.3) kf_x=196.6 kf_vx=0.01 pending=100 confirmed=True holding=False
+[INFO] [1788860788.711600064] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,627.2) kf_x=196.6 kf_vx=0.01 pending=101 confirmed=True holding=False
+[INFO] [1788860788.842905303] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,627.3) kf_x=196.6 kf_vx=0.01 pending=102 confirmed=True holding=False
+[INFO] [1788860788.975497766] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,627.1) kf_x=196.6 kf_vx=0.01 pending=103 confirmed=True holding=False
+[INFO] [1788860789.116543501] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,627.2) kf_x=196.6 kf_vx=0.01 pending=104 confirmed=True holding=False
+[INFO] [1788860789.244790144] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.1,627.1) kf_x=196.6 kf_vx=0.00 pending=105 confirmed=True holding=False
+[INFO] [1788860789.377159435] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,627.2) kf_x=196.6 kf_vx=0.00 pending=106 confirmed=True holding=False
+[INFO] [1788860789.512807200] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,627.2) kf_x=196.6 kf_vx=0.00 pending=107 confirmed=True holding=False
+[INFO] [1788860789.644517332] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,627.1) kf_x=196.6 kf_vx=0.00 pending=108 confirmed=True holding=False
+[INFO] [1788860789.776362412] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,627.2) kf_x=196.6 kf_vx=0.00 pending=109 confirmed=True holding=False
+[INFO] [1788860789.915041234] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.1,627.1) kf_x=196.6 kf_vx=-0.00 pending=110 confirmed=True holding=False
+[INFO] [1788860790.043816685] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,627.1) kf_x=196.6 kf_vx=-0.00 pending=111 confirmed=True holding=False
+[INFO] [1788860790.177168827] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,627.1) kf_x=196.6 kf_vx=-0.00 pending=112 confirmed=True holding=False
+[INFO] [1788860790.312300718] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,627.1) kf_x=196.6 kf_vx=-0.00 pending=113 confirmed=True holding=False
+[INFO] [1788860790.445518767] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,627.1) kf_x=196.6 kf_vx=-0.00 pending=114 confirmed=True holding=False
+[INFO] [1788860790.575827878] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,627.0) kf_x=196.6 kf_vx=-0.00 pending=115 confirmed=True holding=False
+[INFO] [1788860790.711507076] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,627.1) kf_x=196.6 kf_vx=-0.00 pending=116 confirmed=True holding=False
+[INFO] [1788860790.844927583] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,627.0) kf_x=196.6 kf_vx=-0.00 pending=117 confirmed=True holding=False
+[INFO] [1788860790.975839325] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,627.1) kf_x=196.6 kf_vx=-0.00 pending=118 confirmed=True holding=False
+[INFO] [1788860791.114597567] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,627.1) kf_x=196.6 kf_vx=-0.00 pending=119 confirmed=True holding=False
+[INFO] [1788860791.243298983] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,627.0) kf_x=196.6 kf_vx=-0.00 pending=120 confirmed=True holding=False
+[INFO] [1788860791.376672869] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,627.1) kf_x=196.6 kf_vx=-0.00 pending=121 confirmed=True holding=False
+[INFO] [1788860791.513428585] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,627.1) kf_x=196.6 kf_vx=-0.00 pending=122 confirmed=True holding=False
+[INFO] [1788860791.645177528] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,627.0) kf_x=196.6 kf_vx=-0.00 pending=123 confirmed=True holding=False
+[INFO] [1788860791.776678352] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,627.1) kf_x=196.6 kf_vx=-0.00 pending=124 confirmed=True holding=False
+[INFO] [1788860791.911551308] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,626.9) kf_x=196.6 kf_vx=-0.00 pending=125 confirmed=True holding=False
+[INFO] [1788860792.045149166] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.9) kf_x=196.6 kf_vx=-0.00 pending=126 confirmed=True holding=False
+[INFO] [1788860792.178471022] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,626.8) kf_x=196.6 kf_vx=-0.00 pending=127 confirmed=True holding=False
+[INFO] [1788860792.312335782] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,626.9) kf_x=196.6 kf_vx=-0.01 pending=128 confirmed=True holding=False
+[INFO] [1788860792.443169607] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.9) kf_x=196.6 kf_vx=-0.01 pending=129 confirmed=True holding=False
+[INFO] [1788860792.576221947] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,627.0) kf_x=196.6 kf_vx=-0.01 pending=130 confirmed=True holding=False
+[INFO] [1788860792.713408339] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,627.0) kf_x=196.6 kf_vx=-0.01 pending=131 confirmed=True holding=False
+[INFO] [1788860792.843130443] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,626.9) kf_x=196.6 kf_vx=-0.01 pending=132 confirmed=True holding=False
+[INFO] [1788860792.976923489] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,626.9) kf_x=196.6 kf_vx=-0.01 pending=133 confirmed=True holding=False
+[INFO] [1788860793.111954040] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,626.8) kf_x=196.6 kf_vx=-0.01 pending=134 confirmed=True holding=False
+[INFO] [1788860793.245068656] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.8) kf_x=196.6 kf_vx=-0.01 pending=135 confirmed=True holding=False
+[INFO] [1788860793.376232052] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.8) kf_x=196.6 kf_vx=-0.01 pending=136 confirmed=True holding=False
+[INFO] [1788860793.516826250] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,626.7) kf_x=196.6 kf_vx=-0.01 pending=137 confirmed=True holding=False
+[INFO] [1788860793.645190241] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,626.8) kf_x=196.6 kf_vx=-0.01 pending=138 confirmed=True holding=False
+[INFO] [1788860793.776962398] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.8) kf_x=196.6 kf_vx=-0.01 pending=139 confirmed=True holding=False
+[INFO] [1788860793.913022609] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.1,626.8) kf_x=196.6 kf_vx=-0.01 pending=140 confirmed=True holding=False
+[INFO] [1788860794.044441133] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,626.7) kf_x=196.6 kf_vx=-0.01 pending=141 confirmed=True holding=False
+[INFO] [1788860794.179282848] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.1,626.7) kf_x=196.6 kf_vx=-0.01 pending=142 confirmed=True holding=False
+[INFO] [1788860794.311921806] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.8) kf_x=196.6 kf_vx=-0.01 pending=143 confirmed=True holding=False
+[INFO] [1788860794.446493003] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,626.7) kf_x=196.6 kf_vx=-0.01 pending=144 confirmed=True holding=False
+[INFO] [1788860794.575743810] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.8) kf_x=196.6 kf_vx=-0.01 pending=145 confirmed=True holding=False
+[INFO] [1788860794.712624259] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,626.7) kf_x=196.5 kf_vx=-0.01 pending=146 confirmed=True holding=False
+[INFO] [1788860794.844429878] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.5) kf_x=196.5 kf_vx=-0.01 pending=147 confirmed=True holding=False
+[INFO] [1788860794.978046657] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,626.6) kf_x=196.5 kf_vx=-0.01 pending=148 confirmed=True holding=False
+[INFO] [1788860795.112813415] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.6) kf_x=196.5 kf_vx=-0.01 pending=149 confirmed=True holding=False
+[INFO] [1788860795.245016800] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.7) kf_x=196.5 kf_vx=-0.01 pending=150 confirmed=True holding=False
+[INFO] [1788860795.378166552] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.1,626.6) kf_x=196.5 kf_vx=-0.01 pending=151 confirmed=True holding=False
+[INFO] [1788860795.514312856] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,626.7) kf_x=196.5 kf_vx=-0.01 pending=152 confirmed=True holding=False
+[INFO] [1788860795.645338195] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.5) kf_x=196.5 kf_vx=-0.01 pending=153 confirmed=True holding=False
+[INFO] [1788860795.775552728] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,626.6) kf_x=196.5 kf_vx=-0.01 pending=154 confirmed=True holding=False
+[INFO] [1788860795.911980836] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,626.6) kf_x=196.5 kf_vx=-0.01 pending=155 confirmed=True holding=False
+[INFO] [1788860796.043580785] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,626.7) kf_x=196.5 kf_vx=-0.01 pending=156 confirmed=True holding=False
+[INFO] [1788860796.176151133] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.7) kf_x=196.5 kf_vx=-0.01 pending=157 confirmed=True holding=False
+[INFO] [1788860796.312320795] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,626.6) kf_x=196.5 kf_vx=-0.01 pending=158 confirmed=True holding=False
+[INFO] [1788860796.445507174] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,626.5) kf_x=196.5 kf_vx=-0.01 pending=159 confirmed=True holding=False
+[INFO] [1788860796.578356188] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.1,626.4) kf_x=196.5 kf_vx=-0.01 pending=160 confirmed=True holding=False
+[INFO] [1788860796.712776865] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.4) kf_x=196.5 kf_vx=-0.01 pending=161 confirmed=True holding=False
+[INFO] [1788860796.846756987] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.7) kf_x=196.5 kf_vx=-0.01 pending=162 confirmed=True holding=False
+[INFO] [1788860796.976678421] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,626.5) kf_x=196.5 kf_vx=-0.01 pending=163 confirmed=True holding=False
+[INFO] [1788860797.112837412] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,626.5) kf_x=196.5 kf_vx=-0.01 pending=164 confirmed=True holding=False
+[INFO] [1788860797.244505292] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.4) kf_x=196.5 kf_vx=-0.01 pending=165 confirmed=True holding=False
+[INFO] [1788860797.376876394] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.4) kf_x=196.5 kf_vx=-0.01 pending=166 confirmed=True holding=False
+[INFO] [1788860797.514775750] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.4) kf_x=196.5 kf_vx=-0.01 pending=167 confirmed=True holding=False
+[INFO] [1788860797.643805501] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.3) kf_x=196.5 kf_vx=-0.01 pending=168 confirmed=True holding=False
+[INFO] [1788860797.778130811] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,626.4) kf_x=196.5 kf_vx=-0.01 pending=169 confirmed=True holding=False
+[INFO] [1788860797.911763032] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,626.3) kf_x=196.5 kf_vx=-0.01 pending=170 confirmed=True holding=False
+[INFO] [1788860798.043915451] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.3) kf_x=196.5 kf_vx=-0.01 pending=171 confirmed=True holding=False
+[INFO] [1788860798.176877059] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.4) kf_x=196.5 kf_vx=-0.01 pending=172 confirmed=True holding=False
+[INFO] [1788860798.313262966] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.2) kf_x=196.5 kf_vx=-0.01 pending=173 confirmed=True holding=False
+[INFO] [1788860798.443494952] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.2) kf_x=196.5 kf_vx=-0.01 pending=174 confirmed=True holding=False
+[INFO] [1788860798.575929363] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.3) kf_x=196.5 kf_vx=-0.01 pending=175 confirmed=True holding=False
+[INFO] [1788860798.711809210] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,626.3) kf_x=196.5 kf_vx=-0.01 pending=176 confirmed=True holding=False
+[INFO] [1788860798.845910369] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,626.4) kf_x=196.5 kf_vx=-0.01 pending=177 confirmed=True holding=False
+[INFO] [1788860798.976947577] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,626.2) kf_x=196.5 kf_vx=-0.01 pending=178 confirmed=True holding=False
+[INFO] [1788860799.111698212] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,626.3) kf_x=196.5 kf_vx=-0.01 pending=179 confirmed=True holding=False
+[INFO] [1788860799.244665325] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.2) kf_x=196.5 kf_vx=-0.01 pending=180 confirmed=True holding=False
+[INFO] [1788860799.376195303] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,626.4) kf_x=196.5 kf_vx=-0.01 pending=181 confirmed=True holding=False
+[INFO] [1788860799.511524792] [tracking_pick_node]: class=pet_labeled conf=0.93 anchor=(137.3,626.3) kf_x=196.5 kf_vx=-0.01 pending=182 confirmed=True holding=False
+[INFO] [1788860799.644474737] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.1,626.1) kf_x=196.5 kf_vx=-0.01 pending=183 confirmed=True holding=False
+[INFO] [1788860799.781710693] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,626.2) kf_x=196.5 kf_vx=-0.01 pending=184 confirmed=True holding=False
+[INFO] [1788860799.912608732] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.3) kf_x=196.5 kf_vx=-0.01 pending=185 confirmed=True holding=False
+[INFO] [1788860800.044190127] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.3) kf_x=196.5 kf_vx=-0.01 pending=186 confirmed=True holding=False
+[INFO] [1788860800.177268342] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.3) kf_x=196.5 kf_vx=-0.01 pending=187 confirmed=True holding=False
+[INFO] [1788860800.308100915] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.2) kf_x=196.5 kf_vx=-0.01 pending=188 confirmed=True holding=False
+[INFO] [1788860800.446323155] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.2) kf_x=196.5 kf_vx=-0.01 pending=189 confirmed=True holding=False
+[INFO] [1788860800.575844739] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.2) kf_x=196.5 kf_vx=-0.01 pending=190 confirmed=True holding=False
+[INFO] [1788860800.708076457] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,626.2) kf_x=196.5 kf_vx=-0.01 pending=191 confirmed=True holding=False
+[INFO] [1788860800.846183467] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,626.1) kf_x=196.5 kf_vx=-0.01 pending=192 confirmed=True holding=False
+[INFO] [1788860800.976916253] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.3) kf_x=196.5 kf_vx=-0.01 pending=193 confirmed=True holding=False
+[INFO] [1788860801.109668454] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.2) kf_x=196.5 kf_vx=-0.01 pending=194 confirmed=True holding=False
+[INFO] [1788860801.245213916] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,626.2) kf_x=196.5 kf_vx=-0.01 pending=195 confirmed=True holding=False
+[INFO] [1788860801.375804520] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.2) kf_x=196.5 kf_vx=-0.01 pending=196 confirmed=True holding=False
+[INFO] [1788860801.508016827] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.2) kf_x=196.5 kf_vx=-0.01 pending=197 confirmed=True holding=False
+[INFO] [1788860801.644024187] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.2) kf_x=196.5 kf_vx=-0.00 pending=198 confirmed=True holding=False
+[INFO] [1788860801.777873136] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,626.2) kf_x=196.5 kf_vx=-0.01 pending=199 confirmed=True holding=False
+[INFO] [1788860801.908628095] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.1) kf_x=196.5 kf_vx=-0.00 pending=200 confirmed=True holding=False
+[INFO] [1788860802.043626015] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,626.2) kf_x=196.5 kf_vx=-0.00 pending=201 confirmed=True holding=False
+[INFO] [1788860802.176431471] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.2) kf_x=196.5 kf_vx=-0.00 pending=202 confirmed=True holding=False
+[INFO] [1788860802.308077255] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.2) kf_x=196.5 kf_vx=-0.00 pending=203 confirmed=True holding=False
+[INFO] [1788860802.443995549] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,626.2) kf_x=196.5 kf_vx=-0.00 pending=204 confirmed=True holding=False
+[INFO] [1788860802.578932137] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,626.1) kf_x=196.5 kf_vx=-0.00 pending=205 confirmed=True holding=False
+[INFO] [1788860802.710291199] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,626.2) kf_x=196.5 kf_vx=-0.01 pending=206 confirmed=True holding=False
+[INFO] [1788860802.843786010] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.1) kf_x=196.5 kf_vx=-0.00 pending=207 confirmed=True holding=False
+[INFO] [1788860802.977570680] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.1) kf_x=196.5 kf_vx=-0.00 pending=208 confirmed=True holding=False
+[INFO] [1788860803.108846680] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,626.2) kf_x=196.5 kf_vx=-0.00 pending=209 confirmed=True holding=False
+[INFO] [1788860803.249276327] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.2) kf_x=196.5 kf_vx=-0.00 pending=210 confirmed=True holding=False
+[INFO] [1788860803.377201301] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,626.2) kf_x=196.5 kf_vx=-0.00 pending=211 confirmed=True holding=False
+[INFO] [1788860803.515748653] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.1) kf_x=196.5 kf_vx=-0.00 pending=212 confirmed=True holding=False
+[INFO] [1788860803.644749934] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.1) kf_x=196.5 kf_vx=-0.00 pending=213 confirmed=True holding=False
+[INFO] [1788860803.782937868] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,626.1) kf_x=196.5 kf_vx=-0.00 pending=214 confirmed=True holding=False
+[INFO] [1788860803.907984740] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.1) kf_x=196.5 kf_vx=-0.00 pending=215 confirmed=True holding=False
+[INFO] [1788860804.044643343] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.1,626.2) kf_x=196.5 kf_vx=-0.01 pending=216 confirmed=True holding=False
+[INFO] [1788860804.176994584] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,626.0) kf_x=196.5 kf_vx=-0.01 pending=217 confirmed=True holding=False
+[INFO] [1788860804.310879863] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,626.1) kf_x=196.5 kf_vx=-0.01 pending=218 confirmed=True holding=False
+[INFO] [1788860804.447749598] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.1) kf_x=196.5 kf_vx=-0.01 pending=219 confirmed=True holding=False
+[INFO] [1788860804.575936144] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.1) kf_x=196.5 kf_vx=-0.00 pending=220 confirmed=True holding=False
+[INFO] [1788860804.708082234] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.0) kf_x=196.5 kf_vx=-0.00 pending=221 confirmed=True holding=False
+[INFO] [1788860804.845347114] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,626.0) kf_x=196.5 kf_vx=-0.00 pending=222 confirmed=True holding=False
+[INFO] [1788860804.977532255] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.0) kf_x=196.5 kf_vx=-0.00 pending=223 confirmed=True holding=False
+[INFO] [1788860805.108631087] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,626.1) kf_x=196.5 kf_vx=-0.00 pending=224 confirmed=True holding=False
+[INFO] [1788860805.248469990] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,626.1) kf_x=196.5 kf_vx=-0.00 pending=225 confirmed=True holding=False
+[INFO] [1788860805.376073652] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,625.9) kf_x=196.5 kf_vx=-0.00 pending=226 confirmed=True holding=False
+[INFO] [1788860805.509778456] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.1) kf_x=196.5 kf_vx=-0.00 pending=227 confirmed=True holding=False
+[INFO] [1788860805.646184718] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.9) kf_x=196.5 kf_vx=-0.00 pending=228 confirmed=True holding=False
+[INFO] [1788860805.777634393] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.0) kf_x=196.5 kf_vx=-0.00 pending=229 confirmed=True holding=False
+[INFO] [1788860805.908756617] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.1) kf_x=196.5 kf_vx=0.00 pending=230 confirmed=True holding=False
+[INFO] [1788860806.044792307] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,625.9) kf_x=196.5 kf_vx=-0.00 pending=231 confirmed=True holding=False
+[INFO] [1788860806.177408463] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,625.9) kf_x=196.5 kf_vx=-0.00 pending=232 confirmed=True holding=False
+[INFO] [1788860806.309091506] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.0) kf_x=196.5 kf_vx=-0.00 pending=233 confirmed=True holding=False
+[INFO] [1788860806.445643677] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,625.9) kf_x=196.5 kf_vx=-0.00 pending=234 confirmed=True holding=False
+[INFO] [1788860806.577555599] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.9) kf_x=196.5 kf_vx=0.00 pending=235 confirmed=True holding=False
+[INFO] [1788860806.712963012] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,625.8) kf_x=196.5 kf_vx=0.00 pending=236 confirmed=True holding=False
+[INFO] [1788860806.843912524] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,625.9) kf_x=196.5 kf_vx=0.00 pending=237 confirmed=True holding=False
+[INFO] [1788860806.976612477] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.0) kf_x=196.5 kf_vx=0.00 pending=238 confirmed=True holding=False
+[INFO] [1788860807.108895062] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,625.9) kf_x=196.5 kf_vx=0.00 pending=239 confirmed=True holding=False
+[INFO] [1788860807.243871590] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,625.9) kf_x=196.5 kf_vx=-0.00 pending=240 confirmed=True holding=False
+[INFO] [1788860807.376033706] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,626.0) kf_x=196.5 kf_vx=-0.00 pending=241 confirmed=True holding=False
+[INFO] [1788860807.509421480] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,625.8) kf_x=196.5 kf_vx=-0.00 pending=242 confirmed=True holding=False
+[INFO] [1788860807.645122036] [tracking_pick_node]: class=pet_labeled conf=0.95 anchor=(137.2,625.8) kf_x=196.5 kf_vx=-0.00 pending=243 confirmed=True holding=False
+[INFO] [1788860807.777417002] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,625.8) kf_x=196.5 kf_vx=-0.00 pending=244 confirmed=True holding=False
+[INFO] [1788860807.912113361] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.8) kf_x=196.5 kf_vx=-0.00 pending=245 confirmed=True holding=False
+[INFO] [1788860808.046383892] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,625.8) kf_x=196.5 kf_vx=-0.00 pending=246 confirmed=True holding=False
+[INFO] [1788860808.177570620] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.2,625.9) kf_x=196.5 kf_vx=-0.00 pending=247 confirmed=True holding=False
+[INFO] [1788860808.310252199] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,625.8) kf_x=196.5 kf_vx=-0.01 pending=248 confirmed=True holding=False
+[INFO] [1788860808.444177126] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,625.7) kf_x=196.5 kf_vx=-0.01 pending=249 confirmed=True holding=False
+[INFO] [1788860808.576083392] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,625.9) kf_x=196.5 kf_vx=-0.00 pending=250 confirmed=True holding=False
+[INFO] [1788860808.708436866] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,625.9) kf_x=196.5 kf_vx=-0.00 pending=251 confirmed=True holding=False
+[INFO] [1788860808.846349650] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,625.9) kf_x=196.5 kf_vx=-0.00 pending=252 confirmed=True holding=False
+[INFO] [1788860808.981974107] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,625.8) kf_x=196.5 kf_vx=-0.00 pending=253 confirmed=True holding=False
+[INFO] [1788860809.108978116] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.8) kf_x=196.5 kf_vx=-0.00 pending=254 confirmed=True holding=False
+[INFO] [1788860809.245215386] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,625.7) kf_x=196.5 kf_vx=-0.00 pending=255 confirmed=True holding=False
+[INFO] [1788860809.376786059] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.6) kf_x=196.5 kf_vx=-0.00 pending=256 confirmed=True holding=False
+[INFO] [1788860809.508343279] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,625.6) kf_x=196.5 kf_vx=-0.00 pending=257 confirmed=True holding=False
+[INFO] [1788860809.644155248] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.7) kf_x=196.5 kf_vx=-0.00 pending=258 confirmed=True holding=False
+[INFO] [1788860809.776289998] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.6) kf_x=196.5 kf_vx=-0.00 pending=259 confirmed=True holding=False
+[INFO] [1788860809.908672434] [tracking_pick_node]: class=pet_labeled conf=0.95 anchor=(137.4,625.7) kf_x=196.5 kf_vx=-0.00 pending=260 confirmed=True holding=False
+[INFO] [1788860810.045040932] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.8) kf_x=196.5 kf_vx=-0.00 pending=261 confirmed=True holding=False
+[INFO] [1788860810.178145207] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,625.7) kf_x=196.5 kf_vx=-0.00 pending=262 confirmed=True holding=False
+[INFO] [1788860810.309906961] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.7) kf_x=196.5 kf_vx=0.00 pending=263 confirmed=True holding=False
+[INFO] [1788860810.444608838] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,625.8) kf_x=196.5 kf_vx=0.00 pending=264 confirmed=True holding=False
+[INFO] [1788860810.577118985] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,625.7) kf_x=196.5 kf_vx=0.00 pending=265 confirmed=True holding=False
+[INFO] [1788860810.709079037] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.7) kf_x=196.5 kf_vx=0.00 pending=266 confirmed=True holding=False
+[INFO] [1788860810.844234177] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,625.6) kf_x=196.5 kf_vx=0.00 pending=267 confirmed=True holding=False
+[INFO] [1788860810.976296172] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.6) kf_x=196.5 kf_vx=0.00 pending=268 confirmed=True holding=False
+[INFO] [1788860811.109546315] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,625.7) kf_x=196.5 kf_vx=-0.00 pending=269 confirmed=True holding=False
+[INFO] [1788860811.245968666] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,625.7) kf_x=196.5 kf_vx=-0.00 pending=270 confirmed=True holding=False
+[INFO] [1788860811.383152601] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.7) kf_x=196.5 kf_vx=-0.00 pending=271 confirmed=True holding=False
+[INFO] [1788860811.509064535] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.6) kf_x=196.5 kf_vx=0.00 pending=272 confirmed=True holding=False
+[INFO] [1788860811.645805790] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,625.7) kf_x=196.5 kf_vx=-0.00 pending=273 confirmed=True holding=False
+[INFO] [1788860811.777374185] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.6) kf_x=196.5 kf_vx=-0.00 pending=274 confirmed=True holding=False
+[INFO] [1788860811.907841943] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.7,625.5) kf_x=196.5 kf_vx=0.00 pending=275 confirmed=True holding=False
+[INFO] [1788860812.046015594] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.7) kf_x=196.5 kf_vx=0.00 pending=276 confirmed=True holding=False
+[INFO] [1788860812.177065456] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,625.5) kf_x=196.5 kf_vx=0.00 pending=277 confirmed=True holding=False
+[INFO] [1788860812.308271914] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.7) kf_x=196.5 kf_vx=0.00 pending=278 confirmed=True holding=False
+[INFO] [1788860812.447769006] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.7) kf_x=196.5 kf_vx=0.00 pending=279 confirmed=True holding=False
+[INFO] [1788860812.576639301] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.6) kf_x=196.5 kf_vx=0.00 pending=280 confirmed=True holding=False
+[INFO] [1788860812.708714184] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.7) kf_x=196.5 kf_vx=0.01 pending=281 confirmed=True holding=False
+[INFO] [1788860812.845061723] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,625.7) kf_x=196.5 kf_vx=0.00 pending=282 confirmed=True holding=False
+[INFO] [1788860812.976900004] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.5,625.7) kf_x=196.5 kf_vx=0.01 pending=283 confirmed=True holding=False
+[INFO] [1788860813.110082064] [tracking_pick_node]: class=pet_labeled conf=0.95 anchor=(137.4,625.7) kf_x=196.5 kf_vx=0.01 pending=284 confirmed=True holding=False
+[INFO] [1788860813.247576071] [tracking_pick_node]: class=pet_labeled conf=0.95 anchor=(137.4,625.6) kf_x=196.5 kf_vx=0.01 pending=285 confirmed=True holding=False
+[INFO] [1788860813.377838895] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.5) kf_x=196.5 kf_vx=0.00 pending=286 confirmed=True holding=False
+[INFO] [1788860813.509992258] [tracking_pick_node]: class=pet_labeled conf=0.95 anchor=(137.5,625.5) kf_x=196.5 kf_vx=0.01 pending=287 confirmed=True holding=False
+[INFO] [1788860813.640540731] [tracking_pick_node]: class=pet_labeled conf=0.95 anchor=(137.4,625.4) kf_x=196.5 kf_vx=0.00 pending=288 confirmed=True holding=False
+[INFO] [1788860813.777022088] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.6) kf_x=196.5 kf_vx=0.00 pending=289 confirmed=True holding=False
+[INFO] [1788860813.908384049] [tracking_pick_node]: class=pet_labeled conf=0.95 anchor=(137.4,625.5) kf_x=196.5 kf_vx=0.00 pending=290 confirmed=True holding=False
+[INFO] [1788860814.041005939] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.7) kf_x=196.5 kf_vx=0.00 pending=291 confirmed=True holding=False
+[INFO] [1788860814.179252379] [tracking_pick_node]: class=pet_labeled conf=0.95 anchor=(137.5,625.5) kf_x=196.5 kf_vx=0.01 pending=292 confirmed=True holding=False
+[INFO] [1788860814.310095957] [tracking_pick_node]: class=pet_labeled conf=0.95 anchor=(137.4,625.4) kf_x=196.5 kf_vx=0.01 pending=293 confirmed=True holding=False
+[INFO] [1788860814.441265060] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.7) kf_x=196.5 kf_vx=0.01 pending=294 confirmed=True holding=False
+[INFO] [1788860814.576589425] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.5,625.7) kf_x=196.5 kf_vx=0.01 pending=295 confirmed=True holding=False
+[INFO] [1788860814.709389518] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.5,625.5) kf_x=196.5 kf_vx=0.01 pending=296 confirmed=True holding=False
+[INFO] [1788860814.841450721] [tracking_pick_node]: class=pet_labeled conf=0.95 anchor=(137.5,625.6) kf_x=196.5 kf_vx=0.01 pending=297 confirmed=True holding=False
+[INFO] [1788860814.979303700] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,625.6) kf_x=196.5 kf_vx=0.01 pending=298 confirmed=True holding=False
+[INFO] [1788860815.110206757] [tracking_pick_node]: class=pet_labeled conf=0.95 anchor=(137.4,625.5) kf_x=196.5 kf_vx=0.01 pending=299 confirmed=True holding=False
+[INFO] [1788860815.241186612] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.5,625.5) kf_x=196.5 kf_vx=0.01 pending=300 confirmed=True holding=False
+[INFO] [1788860815.376925501] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.6) kf_x=196.5 kf_vx=0.01 pending=301 confirmed=True holding=False
+[INFO] [1788860815.508885132] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.6) kf_x=196.5 kf_vx=0.01 pending=302 confirmed=True holding=False
+[INFO] [1788860815.641344237] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.6) kf_x=196.5 kf_vx=0.01 pending=303 confirmed=True holding=False
+[INFO] [1788860815.776775071] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.6) kf_x=196.5 kf_vx=0.01 pending=304 confirmed=True holding=False
+[INFO] [1788860815.909747989] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.5,625.5) kf_x=196.5 kf_vx=0.01 pending=305 confirmed=True holding=False
+[INFO] [1788860816.041758575] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.5,625.6) kf_x=196.5 kf_vx=0.01 pending=306 confirmed=True holding=False
+[INFO] [1788860816.178912152] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.6) kf_x=196.5 kf_vx=0.01 pending=307 confirmed=True holding=False
+[INFO] [1788860816.308433942] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.5,625.6) kf_x=196.5 kf_vx=0.01 pending=308 confirmed=True holding=False
+[INFO] [1788860816.442540172] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.6) kf_x=196.5 kf_vx=0.01 pending=309 confirmed=True holding=False
+[INFO] [1788860816.578120719] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.6) kf_x=196.5 kf_vx=0.01 pending=310 confirmed=True holding=False
+[INFO] [1788860816.709280003] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.5) kf_x=196.5 kf_vx=0.01 pending=311 confirmed=True holding=False
+[INFO] [1788860816.841245414] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.6,625.5) kf_x=196.5 kf_vx=0.01 pending=312 confirmed=True holding=False
+[INFO] [1788860816.978149195] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.6) kf_x=196.5 kf_vx=0.01 pending=313 confirmed=True holding=False
+[INFO] [1788860817.111059338] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.5,625.7) kf_x=196.5 kf_vx=0.01 pending=314 confirmed=True holding=False
+[INFO] [1788860817.241599913] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.5,625.7) kf_x=196.5 kf_vx=0.01 pending=315 confirmed=True holding=False
+[INFO] [1788860817.378105309] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.7) kf_x=196.5 kf_vx=0.01 pending=316 confirmed=True holding=False
+[INFO] [1788860817.509300576] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.5) kf_x=196.5 kf_vx=0.01 pending=317 confirmed=True holding=False
+[INFO] [1788860817.639988499] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.6) kf_x=196.5 kf_vx=0.00 pending=318 confirmed=True holding=False
+[INFO] [1788860817.779197967] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.6) kf_x=196.5 kf_vx=0.00 pending=319 confirmed=True holding=False
+[INFO] [1788860817.910353335] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.5,625.6) kf_x=196.5 kf_vx=0.00 pending=320 confirmed=True holding=False
+[INFO] [1788860818.042605977] [tracking_pick_node]: class=pet_labeled conf=0.95 anchor=(137.4,625.6) kf_x=196.5 kf_vx=0.00 pending=321 confirmed=True holding=False
+[INFO] [1788860818.183306290] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.6) kf_x=196.5 kf_vx=0.00 pending=322 confirmed=True holding=False
+[INFO] [1788860818.310693832] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.6) kf_x=196.5 kf_vx=0.00 pending=323 confirmed=True holding=False
+[INFO] [1788860818.443340025] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.5,625.6) kf_x=196.5 kf_vx=0.00 pending=324 confirmed=True holding=False
+[INFO] [1788860818.582013559] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.7) kf_x=196.5 kf_vx=0.00 pending=325 confirmed=True holding=False
+[INFO] [1788860818.710703491] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.6) kf_x=196.5 kf_vx=0.00 pending=326 confirmed=True holding=False
+[INFO] [1788860818.841061973] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.5,625.6) kf_x=196.5 kf_vx=0.00 pending=327 confirmed=True holding=False
+[INFO] [1788860818.977467169] [tracking_pick_node]: class=pet_labeled conf=0.95 anchor=(137.5,625.5) kf_x=196.5 kf_vx=0.00 pending=328 confirmed=True holding=False
+[INFO] [1788860819.108506700] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.7) kf_x=196.5 kf_vx=0.00 pending=329 confirmed=True holding=False
+[INFO] [1788860819.241526828] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.5,625.8) kf_x=196.5 kf_vx=0.00 pending=330 confirmed=True holding=False
+[INFO] [1788860819.378082026] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.5,625.6) kf_x=196.5 kf_vx=0.00 pending=331 confirmed=True holding=False
+[INFO] [1788860819.509508508] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.7) kf_x=196.5 kf_vx=0.00 pending=332 confirmed=True holding=False
+[INFO] [1788860819.640724111] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,625.6) kf_x=196.5 kf_vx=0.00 pending=333 confirmed=True holding=False
+[INFO] [1788860819.776784752] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.6) kf_x=196.5 kf_vx=0.00 pending=334 confirmed=True holding=False
+[INFO] [1788860819.909750033] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.6) kf_x=196.5 kf_vx=0.00 pending=335 confirmed=True holding=False
+[INFO] [1788860820.040628281] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.5,625.6) kf_x=196.5 kf_vx=0.00 pending=336 confirmed=True holding=False
+[INFO] [1788860820.178171740] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.6) kf_x=196.5 kf_vx=-0.00 pending=337 confirmed=True holding=False
+[INFO] [1788860820.308810143] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.7) kf_x=196.5 kf_vx=0.00 pending=338 confirmed=True holding=False
+[INFO] [1788860820.441369858] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.5,625.7) kf_x=196.5 kf_vx=0.00 pending=339 confirmed=True holding=False
+[INFO] [1788860820.577616193] [tracking_pick_node]: class=pet_labeled conf=0.95 anchor=(137.4,625.7) kf_x=196.5 kf_vx=0.00 pending=340 confirmed=True holding=False
+[INFO] [1788860820.711261374] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.6) kf_x=196.5 kf_vx=0.00 pending=341 confirmed=True holding=False
+[INFO] [1788860820.842221938] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.7) kf_x=196.5 kf_vx=-0.00 pending=342 confirmed=True holding=False
+[INFO] [1788860820.977609016] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.5,625.7) kf_x=196.5 kf_vx=0.00 pending=343 confirmed=True holding=False
+[INFO] [1788860821.110095927] [tracking_pick_node]: class=pet_labeled conf=0.95 anchor=(137.4,625.6) kf_x=196.5 kf_vx=0.00 pending=344 confirmed=True holding=False
+[INFO] [1788860821.240769359] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.7) kf_x=196.5 kf_vx=-0.00 pending=345 confirmed=True holding=False
+[INFO] [1788860821.377677546] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.7) kf_x=196.5 kf_vx=-0.00 pending=346 confirmed=True holding=False
+[INFO] [1788860821.508769730] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.5,625.7) kf_x=196.5 kf_vx=-0.00 pending=347 confirmed=True holding=False
+[INFO] [1788860821.642075831] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.6) kf_x=196.5 kf_vx=-0.00 pending=348 confirmed=True holding=False
+[INFO] [1788860821.778801037] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.5,625.5) kf_x=196.5 kf_vx=-0.00 pending=349 confirmed=True holding=False
+[INFO] [1788860821.908757540] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.6) kf_x=196.5 kf_vx=-0.00 pending=350 confirmed=True holding=False
+[INFO] [1788860822.041359767] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.7) kf_x=196.5 kf_vx=-0.00 pending=351 confirmed=True holding=False
+[INFO] [1788860822.178125795] [tracking_pick_node]: class=pet_labeled conf=0.95 anchor=(137.5,625.6) kf_x=196.5 kf_vx=-0.00 pending=352 confirmed=True holding=False
+[INFO] [1788860822.312405474] [tracking_pick_node]: class=pet_labeled conf=0.95 anchor=(137.4,625.7) kf_x=196.5 kf_vx=-0.00 pending=353 confirmed=True holding=False
+[INFO] [1788860822.442788819] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.6) kf_x=196.5 kf_vx=-0.00 pending=354 confirmed=True holding=False
+[INFO] [1788860822.578091193] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.5) kf_x=196.5 kf_vx=-0.00 pending=355 confirmed=True holding=False
+[INFO] [1788860822.716919286] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.6) kf_x=196.5 kf_vx=-0.00 pending=356 confirmed=True holding=False
+[INFO] [1788860822.841504344] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.5) kf_x=196.5 kf_vx=-0.00 pending=357 confirmed=True holding=False
+[INFO] [1788860822.976886812] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.6) kf_x=196.5 kf_vx=-0.00 pending=358 confirmed=True holding=False
+[INFO] [1788860823.110156352] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.6) kf_x=196.5 kf_vx=-0.00 pending=359 confirmed=True holding=False
+[INFO] [1788860823.241836310] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,625.7) kf_x=196.5 kf_vx=-0.01 pending=360 confirmed=True holding=False
+[INFO] [1788860823.377020776] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.5,625.6) kf_x=196.5 kf_vx=-0.01 pending=361 confirmed=True holding=False
+[INFO] [1788860823.509864199] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.6) kf_x=196.5 kf_vx=-0.00 pending=362 confirmed=True holding=False
+[INFO] [1788860823.647947460] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.7) kf_x=196.5 kf_vx=-0.00 pending=363 confirmed=True holding=False
+[INFO] [1788860823.780122153] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.6) kf_x=196.5 kf_vx=-0.00 pending=364 confirmed=True holding=False
+[INFO] [1788860823.908931913] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.5,625.5) kf_x=196.5 kf_vx=-0.00 pending=365 confirmed=True holding=False
+[INFO] [1788860824.041307040] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.7) kf_x=196.5 kf_vx=-0.00 pending=366 confirmed=True holding=False
+[INFO] [1788860824.177994687] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.5,625.7) kf_x=196.5 kf_vx=-0.00 pending=367 confirmed=True holding=False
+[INFO] [1788860824.309804670] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,625.6) kf_x=196.5 kf_vx=-0.00 pending=368 confirmed=True holding=False
+[INFO] [1788860824.441875074] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.5,625.6) kf_x=196.5 kf_vx=-0.00 pending=369 confirmed=True holding=False
+[INFO] [1788860824.577695890] [tracking_pick_node]: class=pet_labeled conf=0.95 anchor=(137.4,625.5) kf_x=196.5 kf_vx=-0.00 pending=370 confirmed=True holding=False
+[INFO] [1788860824.709287717] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.5,625.7) kf_x=196.5 kf_vx=-0.00 pending=371 confirmed=True holding=False
+[INFO] [1788860824.842976604] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.5,625.6) kf_x=196.5 kf_vx=-0.00 pending=372 confirmed=True holding=False
+[INFO] [1788860824.977962121] [tracking_pick_node]: class=pet_labeled conf=0.95 anchor=(137.4,625.5) kf_x=196.5 kf_vx=-0.00 pending=373 confirmed=True holding=False
+[INFO] [1788860825.111030924] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.6) kf_x=196.5 kf_vx=-0.00 pending=374 confirmed=True holding=False
+[INFO] [1788860825.240358046] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.5,625.6) kf_x=196.5 kf_vx=-0.00 pending=375 confirmed=True holding=False
+[INFO] [1788860825.377406930] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.5,625.7) kf_x=196.5 kf_vx=-0.00 pending=376 confirmed=True holding=False
+[INFO] [1788860825.509939049] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.7) kf_x=196.5 kf_vx=0.00 pending=377 confirmed=True holding=False
+[INFO] [1788860825.641956344] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,625.6) kf_x=196.5 kf_vx=-0.00 pending=378 confirmed=True holding=False
+[INFO] [1788860825.782181268] [tracking_pick_node]: class=pet_labeled conf=0.95 anchor=(137.5,625.8) kf_x=196.5 kf_vx=0.00 pending=379 confirmed=True holding=False
+[INFO] [1788860825.910777631] [tracking_pick_node]: class=pet_labeled conf=0.95 anchor=(137.3,625.6) kf_x=196.5 kf_vx=-0.00 pending=380 confirmed=True holding=False
+[INFO] [1788860826.042275957] [tracking_pick_node]: class=pet_labeled conf=0.95 anchor=(137.4,625.5) kf_x=196.5 kf_vx=-0.00 pending=381 confirmed=True holding=False
+[INFO] [1788860826.177713100] [tracking_pick_node]: class=pet_labeled conf=0.95 anchor=(137.5,625.6) kf_x=196.5 kf_vx=-0.00 pending=382 confirmed=True holding=False
+[INFO] [1788860826.311959610] [tracking_pick_node]: class=pet_labeled conf=0.95 anchor=(137.4,625.4) kf_x=196.5 kf_vx=-0.00 pending=383 confirmed=True holding=False
+[INFO] [1788860826.444729561] [tracking_pick_node]: class=pet_labeled conf=0.95 anchor=(137.3,625.6) kf_x=196.5 kf_vx=-0.00 pending=384 confirmed=True holding=False
+[INFO] [1788860826.586895419] [tracking_pick_node]: class=pet_labeled conf=0.95 anchor=(137.5,625.6) kf_x=196.5 kf_vx=-0.00 pending=385 confirmed=True holding=False
+[INFO] [1788860826.711639682] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.6) kf_x=196.5 kf_vx=-0.00 pending=386 confirmed=True holding=False
+[INFO] [1788860826.842352778] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.5,625.6) kf_x=196.5 kf_vx=-0.00 pending=387 confirmed=True holding=False
+[INFO] [1788860826.976188474] [tracking_pick_node]: class=pet_labeled conf=0.95 anchor=(137.4,625.5) kf_x=196.5 kf_vx=-0.00 pending=388 confirmed=True holding=False
+[INFO] [1788860827.111687023] [tracking_pick_node]: class=pet_labeled conf=0.95 anchor=(137.4,625.6) kf_x=196.5 kf_vx=-0.00 pending=389 confirmed=True holding=False
+[INFO] [1788860827.241270780] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.5) kf_x=196.5 kf_vx=-0.00 pending=390 confirmed=True holding=False
+[INFO] [1788860827.373413139] [tracking_pick_node]: class=pet_labeled conf=0.95 anchor=(137.5,625.5) kf_x=196.5 kf_vx=0.00 pending=391 confirmed=True holding=False
+[INFO] [1788860827.512919172] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.5,625.6) kf_x=196.5 kf_vx=0.00 pending=392 confirmed=True holding=False
+[INFO] [1788860827.641434263] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.5) kf_x=196.5 kf_vx=0.00 pending=393 confirmed=True holding=False
+[INFO] [1788860827.773183214] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.6) kf_x=196.5 kf_vx=0.00 pending=394 confirmed=True holding=False
+[INFO] [1788860827.909121444] [tracking_pick_node]: class=pet_labeled conf=0.95 anchor=(137.4,625.6) kf_x=196.5 kf_vx=0.00 pending=395 confirmed=True holding=False
+[INFO] [1788860828.041949053] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.5) kf_x=196.5 kf_vx=0.00 pending=396 confirmed=True holding=False
+[INFO] [1788860828.173149979] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.6) kf_x=196.5 kf_vx=-0.00 pending=397 confirmed=True holding=False
+[INFO] [1788860828.309439336] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.3,625.6) kf_x=196.5 kf_vx=-0.00 pending=398 confirmed=True holding=False
+[INFO] [1788860828.442968972] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.6) kf_x=196.5 kf_vx=-0.00 pending=399 confirmed=True holding=False
+[INFO] [1788860828.573242709] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.4) kf_x=196.5 kf_vx=-0.00 pending=400 confirmed=True holding=False
+[INFO] [1788860828.710193548] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.5) kf_x=196.5 kf_vx=-0.00 pending=401 confirmed=True holding=False
+[INFO] [1788860828.842406960] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.4,625.6) kf_x=196.5 kf_vx=-0.00 pending=402 confirmed=True holding=False
+[INFO] [1788860828.977082744] [tracking_pick_node]: class=pet_labeled conf=0.94 anchor=(137.5,625.6) kf_x=196.5 kf_vx=-0.00 pending=403 confirmed=True holding=False
+Traceback (most recent call last):
+  File "/home/rokey/Rocycle_Project/ros2_ws/install/rocycle_robot/lib/python3.12/site-packages/rocycle_robot/tracking_pick_node.py", line 1837, in main
+    rclpy.spin(node)
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/__init__.py", line 247, in spin
+    executor.spin_once()
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 926, in spin_once
+    self._spin_once_impl(timeout_sec)
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 907, in _spin_once_impl
+    handler, entity, node = self.wait_for_ready_callbacks(
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 877, in wait_for_ready_callbacks
+    return next(self._cb_iter)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 785, in _wait_for_ready_callbacks
+    raise ExternalShutdownException()
+rclpy.executors.ExternalShutdownException
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/rokey/Rocycle_Project/ros2_ws/install/rocycle_robot/lib/rocycle_robot/tracking_pick_node", line 33, in <module>
+    sys.exit(load_entry_point('rocycle_robot==0.0.1', 'console_scripts', 'tracking_pick_node')())
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rokey/Rocycle_Project/ros2_ws/install/rocycle_robot/lib/python3.12/site-packages/rocycle_robot/tracking_pick_node.py", line 1842, in main
+    rclpy.shutdown()
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/__init__.py", line 134, in shutdown
+    _shutdown(context=context)
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/utilities.py", line 82, in shutdown
+    context.shutdown()
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/context.py", line 129, in shutdown
+    self.__context.shutdown()
+rclpy._rclpy_pybind11.RCLError: failed to shutdown: rcl_shutdown already called on the given context, at ./src/rcl/init.c:333

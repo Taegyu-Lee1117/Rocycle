@@ -1,0 +1,39 @@
+{
+  "project": "conveyor_recycling_cobot",
+  "model": "YOLO12s",
+  "task": "object_detection",
+  "weights": "models/yolo12s_best.pt",
+  "weights_sha256": "f905249e98fd9a96ec5ebfe12c0ee94eab56b5f656944b55c9fd8d3cdd46a75e",
+  "ultralytics_training_version": "8.4.140",
+  "imgsz": 640,
+  "recommended_conf": 0.25,
+  "recommended_iou": 0.7,
+  "one_object_at_a_time": true,
+  "classes": {
+    "0": "battery",
+    "1": "can",
+    "2": "paper",
+    "3": "pet_labeled",
+    "4": "pet_unlabeled",
+    "5": "plastic_bag"
+  },
+  "class_definition_note": {
+    "paper": "chocolate paper box used in the final demonstration"
+  },
+  "new_image_evaluation": {
+    "images": 145,
+    "correct": 143,
+    "accuracy": 0.9862068966,
+    "missed": 0,
+    "pet_labeled": "40/40",
+    "pet_unlabeled": "14/16",
+    "paper": "9/9"
+  },
+  "output_contract": {
+    "class_id": "integer class index",
+    "class_name": "string class name",
+    "confidence": "0.0 to 1.0",
+    "bbox": "[x1, y1, x2, y2] in pixels",
+    "anchor_pixel": "[u, v] lower-center point near the belt plane"
+  }
+}
