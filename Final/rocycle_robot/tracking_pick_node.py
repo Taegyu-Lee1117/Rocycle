@@ -583,6 +583,7 @@ class TrackingNode(Node):
         return {
             "track_id": self._next_track_id,
             "class_name": class_name,
+            "last_confidence": None,
             "kf": ConstantVelocityKalman1D(
                 process_var=self._kalman_process_var,
                 measurement_var=self._kalman_measurement_var,
@@ -1066,6 +1067,8 @@ class TrackingNode(Node):
             track["last_z"] = float(
                 base[2]
             )
+
+            track["last_confidence"] = confidence
 
             # ----------------------------------------
             # Kalman
@@ -2025,6 +2028,7 @@ class TrackingNode(Node):
         # (baseline/post-pick 둘 다) -- 노이즈를 시간이 아니라 반복
         # measurement 평균으로 줄인다.
         forced_bin = None
+        review_reason = None
         if weight_check is not None:
             weight_kg = self._weigh_with_log(f"{item_key}-postpick")
             # [9일차] n_log=15 제거. 15샘플이 판정에 쓰이는 건 앞 5개뿐인데,
@@ -2063,6 +2067,7 @@ class TrackingNode(Node):
                 and net_weight < 0.010
             ):
                 forced_bin = weight_check["review_bin"]
+                review_reason = "weight_measurement_unreliable"
                 self.get_logger().warn(
                     f"[EXEC] {item_key} 무게판정 신뢰불가(파지는 성공인데 "
                     f"net={net_weight*1000:.1f}g < 10g) -- {forced_bin} 강제"
@@ -2073,6 +2078,7 @@ class TrackingNode(Node):
                 )
             elif net_weight is not None and net_weight < -0.03:
                 forced_bin = weight_check["review_bin"]
+                review_reason = "weight_measurement_unreliable"
                 self.get_logger().warn(
                     f"[EXEC] {item_key} 무게판정 신뢰불가(net={net_weight*1000:.1f}g "
                     f"< -30g, 물리적으로 불가능) -- {forced_bin} 강제"
@@ -2083,6 +2089,7 @@ class TrackingNode(Node):
                 )
             elif net_weight is not None and net_weight > threshold:
                 forced_bin = weight_check["review_bin"]
+                review_reason = "weight_exceeded"
                 self.get_logger().warn(
                     f"[EXEC] {item_key} over weight threshold -- routing to "
                     f"{forced_bin} instead (내용물 있는 것으로 의심)"
@@ -2100,7 +2107,14 @@ class TrackingNode(Node):
         self._last_result = {
             "item": item_key,
             "dest": None,
-            "net_weight": net_weight if weight_check is not None else None,
+            "confidence": track.get("last_confidence"),
+            "net_weight_kg": net_weight if weight_check is not None else None,
+            "weight_g": (
+                round(net_weight * 1000, 1)
+                if weight_check is not None and net_weight is not None
+                else None
+            ),
+            "reason": review_reason,
             "ts": time.time(),
         }
 
@@ -2249,6 +2263,8 @@ class TrackingNode(Node):
         self._bin_counts[bin_name] = self._bin_counts.get(bin_name, 0) + 1
         if self._last_result is not None and self._last_result.get("item") == item_key:
             self._last_result["dest"] = bin_name
+            if bin_name == "review_bin" and not self._last_result.get("reason"):
+                self._last_result["reason"] = "manual_review_required"
         self._stage = "idle"
         self.get_logger().info(f"[PLACE] {item_key} placed in {bin_name}, restarting conveyor")
         self._release("interlock")

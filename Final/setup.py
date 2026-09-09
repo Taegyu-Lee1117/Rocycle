@@ -22,6 +22,7 @@ setup(
             "tracking_node = rocycle_robot.tracking_node:main",
             "voice_bridge_node = rocycle_robot.voice.voice_bridge_node:main",
             "conveyor_node = rocycle_robot.conveyor_node:main",
+            "db_bridge_node = rocycle_robot.db_bridge_node:main",
         ],
     },
 )
