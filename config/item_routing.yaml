@@ -12,6 +12,10 @@ routing:
   battery: {type: bin, bin: battery_bin}
   pet_unlabeled: {type: bin, bin: plastic_bin}
   pet_labeled: {type: human_handoff}
+  # [9일차] v6 모델 신규 클래스. 뚜껑/플라스틱 용기류.
+  # pet_unlabeled는 지우지 않는다 -- v6가 그 클래스를 안 내도
+  # 죽은 항목일 뿐 무해하고, v5로 롤백할 때 그대로 쓴다.
+  plastic: {type: bin, bin: plastic_bin}
   plastic_bag: {type: bin, bin: review_bin}
 
 place_open_wait_sec: 1.0   # [원문] 6일차 사이클 측정 스크립트에서 쓴 값

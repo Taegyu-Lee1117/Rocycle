@@ -59,6 +59,9 @@ Status (6일차): plane-intersection math + belt_correction 전부 구현·검�
 from __future__ import annotations
 
 import json
+import statistics
+from pathlib import Path
+from ament_index_python.packages import get_package_share_directory
 import time
 
 import numpy as np
@@ -218,6 +221,25 @@ class TrackingNode(Node):
             500.0
         )
 
+        # [9일차, v139] 벨트 무정지 전환용. 1단계에서는 stop_during_pick을
+        # true로 두어 기존 인터록 동작을 그대로 유지한다 -- 2단계에서
+        # false로 바꿔 무정지 시험을 하고, 문제가 있으면 true로 되돌린다.
+        self.declare_parameter("conveyor.stop_during_pick", True)
+        # 로봇 도달한계 590mm에서 50mm 앞. [전제] 실측으로 조정할 것.
+        self.declare_parameter("conveyor.reach_limit_stop_x", 540.0)
+        # 사유별이 아니라 집합 전체에 대한 워치독. 사유가 늘어도 코드를
+        # 안 고쳐도 되고, interlock/weighing도 노드 예외로 영영 안 풀릴
+        # 수 있다. 120초 근거: reach_limit은 두 사이클에 걸쳐 유지될 수
+        # 있다(A 처리 중 B가 한계 도달 -> A가 끝나도 B가 한계에 서 있어
+        # B 처리 완료 시점에야 풀린다). 재시도 없이 24초x2=48초, 한쪽에
+        # 재시도가 끼면 70초 이상이라 90초는 여유가 20초 안팎뿐이었다.
+        self.declare_parameter("conveyor.hold_watchdog_sec", 120.0)
+        # [9일차] 이 간격보다 짧게 도착한 검출은 파지 중 쌓였다가
+        # 드레인된 백로그로 보고 버린다. 카메라 7.5Hz = 약 133ms의
+        # 절반인 66ms를 기본값으로 둔다 -- 실시간 프레임이 이보다
+        # 촘촘히 올 수는 없다.
+        self.declare_parameter("vision.detection_min_gap_sec", 0.066)
+
         self._min_consecutive_frames = (
             self.get_parameter(
                 "vision.min_consecutive_frames"
@@ -246,6 +268,19 @@ class TrackingNode(Node):
             ).value
         )
 
+        self._stop_during_pick = self.get_parameter(
+            "conveyor.stop_during_pick"
+        ).value
+        self._reach_limit_stop_x = self.get_parameter(
+            "conveyor.reach_limit_stop_x"
+        ).value
+        self._hold_watchdog_sec = self.get_parameter(
+            "conveyor.hold_watchdog_sec"
+        ).value
+        self._detection_min_gap_sec = self.get_parameter(
+            "vision.detection_min_gap_sec"
+        ).value
+
         # [완료 — 6일차, 순차 처리 인덱싱] 물체 1개 기준 단일 상태
         # (_pending_class/_locked_class/self._kf 하나)를 물체별 트랙
         # 리스트로 교체 -- 여러 물체를 동시에 추적하고, Pick 우선순위는
@@ -253,6 +288,37 @@ class TrackingNode(Node):
         # 트랙 하나 = {class_name, kf, pending_count, last_y, last_z,
         # last_detection_time, lost_count}. 상세: _on_image/_match_track.
         self._tracks: list[dict] = []
+        self._next_track_id = 0
+
+        # ------------------------------------------------------------
+        # [9일차, v139] 컨베이어 정지 사유 집합 (벨트 무정지 전환 1단계)
+        # ------------------------------------------------------------
+        # 인터록/도달한계/계량이 각자 on/off를 부르면 경쟁상태가 생긴다
+        # (도달한계로 서 있는데 계량이 먼저 끝나 재가동 -> 사유가 안
+        # 풀렸는데 벨트가 돎). **사유 집합이 빌 때만 실제로 재가동하는
+        # 단일 소유자 구조**로 만든다.
+        #
+        # 세 사유가 모두 이 노드에서 발생하므로 집합을 여기 둔다.
+        # 다른 노드(예: 미구현 손검출 안전정지)가 벨트를 세울 필요가
+        # 생기면 conveyor_node로 옮길 것. 지금 conveyor_node에 두지 않는
+        # 이유는 colcon 커스텀 .srv 구성이 없어 사유 이름을 실어보낼
+        # 메시지를 못 만들기 때문(v59 제약).
+        self._hold_reasons: set[str] = set()
+        self._hold_since: dict[str, float] = {}
+        # 비상정지는 **집합 밖에 별도로 둔다.** 집합에 넣으면 다른 사유가
+        # 다 풀렸을 때 집합이 비어서 벨트가 돌아버린다. 사람이 명시적으로
+        # 해제할 때만 풀려야 한다.
+        self._emergency_stop = False
+        # 워치독이 강제 재가동시킨 트랙. 도달한계 판정과 파지 후보
+        # **양쪽에서** 제외한다(한쪽만 빼면 즉시 재정지 또는 무한 실패).
+        self._abandoned_track_ids: set[int] = set()
+        # [9일차, v118 2단계] 품목별 파지 실패 누적(진단용).
+        self._grasp_fail_counts: dict[str, int] = {}
+        # [9일차] 검출 백로그 폐기용. 카메라 7.5Hz(약 133ms)의 절반보다
+        # 짧은 간격은 실시간 프레임일 수 없다.
+        self._last_detection_arrival = 0.0
+        self._stale_detection_drops = 0
+
         # [안전 — 6일차, 사고 후 추가] 배치/상태머신이 아직 없어 파지
         # 후 놓는 동작이 없다 -- 들고 있는 채로 다음 물체를 또 집으려
         # 하면 그리퍼가 닫힌 채로 눌러 찌그러뜨리는 사고가 남(실측).
@@ -366,6 +432,9 @@ class TrackingNode(Node):
         )
 
         self.create_timer(0.5, self._publish_ui_state)
+        # [9일차, v139] 사유집합 워치독 -- 사유가 안 풀린 채 오래 지나면
+        # 통째로 비우고 경고한다. 사유별이 아니라 집합 전체에 건다.
+        self.create_timer(1.0, self._check_hold_watchdog)
 
         if not self._dry_run:
             if MoveLine is None or SetCommand is None:
@@ -439,10 +508,34 @@ class TrackingNode(Node):
         )
 
     def _load_cam_to_base(self) -> np.ndarray | None:
+        """[9일차] 상대경로를 패키지 share 기준으로 해석한다.
+
+        저장소 `config/tracking.yaml`은 6일차 v61 회신에서 "특정 계정의
+        홈 디렉터리가 박힌 절대경로"를 패키지 상대경로로 바꿨는데,
+        **`tracking_pick_node`에는 그걸 해석하는 코드가 없어서**
+        `np.load("calib_capture/T_cam2base.npy")`가 실행 CWD 기준으로
+        찾다가 실패한다. 지금까지는 params 파일의 최상위 키가 노드
+        이름과 달라 이 파라미터 자체가 적용되지 않았기 때문에
+        드러나지 않았다(같은 날 함께 발견).
+
+        절대경로는 그대로 쓰고, 상대경로만 share 디렉터리 기준으로
+        해석한다.
+        """
         path = self.get_parameter("camera.cam_to_base_path").value
         if not path:
             return None
-        return np.load(path)
+        p = Path(path)
+        if not p.is_absolute():
+            p = Path(
+                get_package_share_directory("rocycle_robot")
+            ) / p
+        if not p.exists():
+            self.get_logger().error(
+                f"[CALIB] cam_to_base 파일 없음: {p} -- 캘리브레이션 미적용"
+            )
+            return None
+        self.get_logger().info(f"[CALIB] cam_to_base 로드: {p}")
+        return np.load(str(p))
 
     def _load_belt_plane(self) -> Plane | None:
         a, b, c, d = self.get_parameter("belt_plane.abcd").value
@@ -477,7 +570,9 @@ class TrackingNode(Node):
         return np.array([cx, cy, raw[2]])
 
     def _new_track(self, class_name: str) -> dict:
+        self._next_track_id += 1
         return {
+            "track_id": self._next_track_id,
             "class_name": class_name,
             "kf": ConstantVelocityKalman1D(
                 process_var=self._kalman_process_var,
@@ -743,14 +838,14 @@ class TrackingNode(Node):
                     % stale_track_count
                 )
                 self._voice_state = "RUNNING"
-                self._call_conveyor("on")
+                self._apply_conveyor_state()
                 self._say("분리수거를 시작합니다.")
             else:
                 self.get_logger().info(f"[VOICE] start 무시(state={self._voice_state})")
         elif cmd == "pause":
             if self._voice_state == "RUNNING":
                 self._voice_state = "PAUSED"
-                self._call_conveyor("off")
+                self._apply_conveyor_state()
                 # [v56 4-2절] 파지 사이클(_execute_pick/_place_item)은
                 # 블로킹이라 이 콜백이 그 도중엔 안 불린다 -- 즉 이
                 # PAUSE는 항상 "현재 사이클이 없을 때"에만 처리되므로
@@ -770,7 +865,7 @@ class TrackingNode(Node):
                     % stale_track_count
                 )
                 self._voice_state = "RUNNING"
-                self._call_conveyor("on")
+                self._apply_conveyor_state()
                 self._say("작업을 재개합니다.")
             else:
                 self.get_logger().info(f"[VOICE] resume 무시(state={self._voice_state})")
@@ -781,7 +876,7 @@ class TrackingNode(Node):
             # 즉시 정지를 담당.
             self._voice_state = "STOPPING"
             self._report_end_of_run()
-            self._call_conveyor("off")
+            self._apply_conveyor_state()
             self._voice_state = "IDLE"
         elif cmd == "status":
             self._report_status()
@@ -808,6 +903,36 @@ class TrackingNode(Node):
             return
 
         detections = _deduplicate_cross_class_detections(detections)
+
+        # [9일차] **파지 중 큐에 쌓인 검출 버스트를 버린다.**
+        # 파지 동작이 메인 executor를 블로킹하는 동안 검출 메시지가
+        # 큐에 쌓였다가, 파지가 끝나는 순간 한꺼번에 드레인된다.
+        # 실측: 확정에 필요한 9프레임이 **0.008초** 만에 채워졌다
+        # (정상은 카메라 7.5Hz 기준 약 1.2초).
+        # 결과: (a) 연속프레임 확정 조건이 시간 정보를 전혀 담지 못하고
+        # (b) 칼만이 8ms 구간에서 추정한 속도로 8.8초 앞을 외삽해
+        # predicted_x가 702mm(도달한계 590 초과)까지 튀었으며
+        # (c) 큐의 위치는 파지 전 옛 위치인데 도착 시각은 '지금'이라
+        # extra_gap 보정도 안 먹는다.
+        # 인터록(파지 중 벨트 정지) 하에서는 옛 위치가 여전히 유효해
+        # 드러나지 않았고, **무정지로 바꾸는 순간 드러난 결함**이다.
+        #
+        # 검출 JSON에 프레임 촬영 시각이 없어서(std_msgs/String, header
+        # 없음) 나이로 거를 수가 없다 -- 도착 간격으로 대신 거른다.
+        # 카메라가 7.5Hz(약 0.133초)이므로 그보다 훨씬 짧은 간격으로
+        # 도착한 것은 실시간 프레임이 아니라 드레인된 백로그다.
+        now_arrival = time.monotonic()
+        gap = now_arrival - self._last_detection_arrival
+        self._last_detection_arrival = now_arrival
+        if gap < self._detection_min_gap_sec:
+            self._stale_detection_drops += 1
+            if self._stale_detection_drops % 20 == 1:
+                self.get_logger().warn(
+                    f"[DETECT] 백로그 검출 폐기 (도착간격 {gap*1000:.1f}ms "
+                    f"< {self._detection_min_gap_sec*1000:.0f}ms, 누적 "
+                    f"{self._stale_detection_drops}건)"
+                )
+            return
 
         now = (
             self.get_clock()
@@ -1094,6 +1219,11 @@ class TrackingNode(Node):
                         track
                     )
 
+        # [9일차, v139] 도달한계 안전정지 -- 가장 앞선 미처리 물체가
+        # 로봇 도달한계에 근접하면 벨트를 세운다. 들고 있는 중에도
+        # 평가해야 한다(파지 중에 뒤 물체가 한계에 닿을 수 있음).
+        self._update_reach_limit_hold()
+
         # 물체를 들고 있으면 새 Pick 금지
         if self._holding:
             # stage는 지금 진행 중인 단계(pick/measure/place/handoff)를
@@ -1121,6 +1251,12 @@ class TrackingNode(Node):
                 ]
                 >=
                 self._min_consecutive_frames
+                # [9일차] 워치독이 포기한 트랙은 파지 후보에서도 뺀다.
+                # 도달한계 판정에서만 빼면 계속 선택됐다 실패한다.
+                and track["track_id"] not in self._abandoned_track_ids
+                # [9일차, v141] 이미 도달한계를 넘은 트랙은 즉시 제외한다
+                # -- 워치독 120초를 기다릴 이유가 없다.
+                and not self._is_unreachable(track)
             )
         ]
 
@@ -1281,7 +1417,8 @@ class TrackingNode(Node):
         return sum(readings) / len(readings)
 
     def _weigh_with_log(self, label: str, n: int = 5, interval: float = 0.15,
-                        drop_first: int = 1, n_log: int | None = None):
+                        drop_first: int = 1, n_log: int | None = None,
+                        use_median: bool = False):
         """[8일차] 무게 측정 + **원시샘플·자세·직전이동 경과시간 로깅**.
 
         `_get_workpiece_weight_avg()`와 계산 결과는 동일하고(평균), 진단에
@@ -1339,7 +1476,20 @@ class TrackingNode(Node):
             if self._last_move_done_t is not None
             else float("nan")
         )
-        avg = sum(readings) / len(readings) if readings else None
+        # [9일차] baseline은 **중앙값**을 쓴다. 벨트 가동 중에 재야 하는
+        # 구간이라(예측 구간 total_ahead 안이므로 세울 수 없다) 진동으로
+        # 한 샘플이 크게 튀면 평균이 통째로 끌려간다 -- 실측에서
+        # baseline 1373.5g / post-pick 1235.9g로 net이 -137.6g까지
+        # 틀어졌다. 샘플 수와 소요 시간은 그대로 두고 집계만 바꾼다.
+        if use_median and judged:
+            # **판정 표본 전체(drop_first 미적용)에 중앙값을 쓴다.**
+            # baseline은 n=3인데 drop_first=1을 적용하면 표본이 2개가
+            # 되어 중앙값이 평균과 같아진다(가운데 두 값의 평균).
+            # 중앙값은 초기 과도 샘플도 자연히 배제하므로 drop_first가
+            # 하던 일을 겸한다.
+            avg = statistics.median(judged)
+        else:
+            avg = sum(readings) / len(readings) if readings else None
         avg_judged = sum(judged) / len(judged) if judged else None
         self.get_logger().info(
             "[WEIGHLOG] %s n=%d/%d avg=%s (avg_nodrop=%s dropped=%d) "
@@ -1369,6 +1519,142 @@ class TrackingNode(Node):
         future = self._release_compliance_client.call_async(req)
         self._robot_executor.spin_until_future_complete(future, timeout_sec=5.0)
         return future.result()
+
+    # ----------------------------------------------------------------
+    # [9일차, v139] 정지 사유 집합 기반 컨베이어 제어
+    # ----------------------------------------------------------------
+    # 이름을 stop/resume이 아니라 hold/release로 둔 이유: **release가 곧
+    # 가동은 아니다**(집합이 안 비면 계속 정지). 코드를 읽을 때 바로
+    # 드러나게 하기 위한 것.
+
+    def _hold(self, reason: str) -> None:
+        if reason not in self._hold_reasons:
+            self._hold_reasons.add(reason)
+            self._hold_since[reason] = time.time()
+            self.get_logger().info(
+                f"[HOLD] +{reason} (사유집합={sorted(self._hold_reasons)})"
+            )
+        self._apply_conveyor_state()
+
+    def _release(self, reason: str, cause: str = "normal") -> None:
+        if reason in self._hold_reasons:
+            held = time.time() - self._hold_since.pop(reason, time.time())
+            self._hold_reasons.discard(reason)
+            self.get_logger().info(
+                f"[HOLD] -{reason} 유지 {held:.1f}s 해제원인={cause} "
+                f"(사유집합={sorted(self._hold_reasons)})"
+            )
+        self._apply_conveyor_state()
+
+    def _apply_conveyor_state(self) -> None:
+        """사유집합/비상정지/음성상태를 종합해 실제 모터 상태를 정한다."""
+        if self._emergency_stop:
+            desired = False
+        elif self._voice_state != "RUNNING":
+            desired = False
+        elif self._hold_reasons:
+            desired = False
+        else:
+            desired = True
+
+        if desired != self._conveyor_running:
+            self._call_conveyor("on" if desired else "off")
+
+    def _check_hold_watchdog(self) -> None:
+        """사유가 안 풀린 채 오래 지나면 통째로 비우고 경고."""
+        if not self._hold_reasons:
+            return
+        oldest = min(self._hold_since.values())
+        held = time.time() - oldest
+        if held < self._hold_watchdog_sec:
+            return
+
+        stuck = sorted(self._hold_reasons)
+        self.get_logger().warn(
+            f"[HOLD] 워치독 {held:.1f}s 초과 -- 사유집합 강제 해제 {stuck}"
+        )
+        self._publish_ui_alert(
+            "warn",
+            f"컨베이어 정지 사유가 {held:.0f}초간 안 풀려 강제 재가동 ({', '.join(stuck)})",
+        )
+        if "reach_limit" in stuck:
+            # 이 트랙을 포기하지 않으면 재가동 직후 다시 한계에 서 있어
+            # 즉시 재정지된다. 파지 후보에서도 빼야 계속 선택됐다 실패하는
+            # 낭비가 안 생긴다.
+            abandoned = []
+            for track in self._tracks:
+                x = self._track_front_x(track)
+                if x is not None and x >= self._reach_limit_stop_x:
+                    self._abandoned_track_ids.add(track["track_id"])
+                    abandoned.append(f"{track['class_name']}@{x:.0f}mm")
+            if abandoned:
+                self.get_logger().warn(
+                    f"[HOLD] 도달한계 포기 트랙: {', '.join(abandoned)}"
+                )
+                self._publish_ui_alert(
+                    "warn",
+                    f"물체 포기: 도달한계 대기 시간 초과 ({', '.join(abandoned)})",
+                )
+        for reason in stuck:
+            self._release(reason, cause="워치독 강제")
+
+    def _track_front_x(self, track: dict) -> float | None:
+        try:
+            return float(track["kf"].state.x)
+        except Exception:
+            return None
+
+    def _is_unreachable(self, track: dict) -> bool:
+        """[9일차, v141] 이미 도달한계를 넘어선 트랙인가.
+
+        무정지에서는 파지가 블로킹하는 동안 도달한계 판정이 돌지 않아
+        물체가 한계를 넘어가 버린다(실측: 540 정지선을 지나 632mm).
+        그 트랙은 `_execute_pick`이 매번 "도달 불가"로 중단하는데,
+        호출부가 트랙을 지우고 다음 프레임에 새 트랙이 생기므로
+        **1.6초마다 무한 재시도**가 된다(워치독 120초까지).
+
+        트랙 id로는 못 막는다 -- 매번 새 id가 부여되기 때문이다.
+        그래서 **위치로 판정**한다: 예측은 거리를 더하기만 하므로
+        현재 x가 이미 한계를 넘었으면 어떤 경우에도 도달 불가다.
+
+        놓친 물체는 벨트 끝으로 흘러가 사람이 회수한다 -- 원 설계가
+        이미 안전한 실패모드로 분류해둔 경로다(낙하·충돌 아님).
+        """
+        max_x = self._motion_timing.get("max_reachable_x")
+        if max_x is None:
+            return False
+        x = self._track_front_x(track)
+        if x is None or x <= max_x:
+            return False
+        tid = track["track_id"]
+        if tid not in self._abandoned_track_ids:
+            self._abandoned_track_ids.add(tid)
+            self.get_logger().warn(
+                f"[EXEC] {track['class_name']} 도달한계 초과(x={x:.1f} > {max_x}) "
+                "-- 즉시 포기, 벨트 끝으로 흘려보냄"
+            )
+            self._publish_ui_alert(
+                "warn", f"{track['class_name']} 도달 범위 밖 — 포기"
+            )
+        return True
+
+    def _update_reach_limit_hold(self) -> None:
+        """가장 앞선 미처리 물체가 도달한계에 근접하면 벨트를 세운다."""
+        front = None
+        for track in self._tracks:
+            if track["track_id"] in self._abandoned_track_ids:
+                continue
+            # 이미 한계를 넘은 물체 때문에 벨트를 세우면 영원히 안 풀린다.
+            if self._is_unreachable(track):
+                continue
+            x = self._track_front_x(track)
+            if x is not None and (front is None or x > front):
+                front = x
+
+        if front is not None and front >= self._reach_limit_stop_x:
+            self._hold("reach_limit")
+        else:
+            self._release("reach_limit")
 
     def _call_conveyor(self, cmd: str) -> None:
         """현재 검증된 /conveyor_command 방식."""
@@ -1490,7 +1776,7 @@ class TrackingNode(Node):
             # 5배라 그 회귀를 그대로 재현한다.
             # 진동 패턴 확인은 시간이 안 중요한 지점(can-postpick,
             # handoff-*-presented)에서만 한다.
-            self._weigh_with_log(f"{item_key}-baseline", n=3, interval=0.08)
+            self._weigh_with_log(f"{item_key}-baseline", n=3, interval=0.08, use_median=True)
             if weight_check is not None
             else None
         )
@@ -1566,15 +1852,44 @@ class TrackingNode(Node):
         # 사이클은 그대로 진행한다. 상승 후에 재는 이유: 물체를 든 상태의
         # 그리퍼 폭이 실제 운용 상태이고, 이 시점이면 닫기 동작이 확실히
         # 끝나 있다.
-        self._check_grasp(item_key)
+        # [9일차, v118 2단계] **파지 실패면 이후 동작을 전부 생략하고
+        # 곧바로 다음 파지 위치로 복귀한다**(사용자 요청 — 8일차 제안의
+        # 본래 목적). 빈 손으로 통까지 갔다가 벨트를 세우고 계량까지
+        # 하는 낭비를 없앤다.
+        #
+        # **`False`(명시적 실패)일 때만 동작한다.** `None`(판정 불가)에는
+        # 절대 반응하지 않는다 -- `plastic`/`plastic_bag`은 임계값이
+        # 없고, 오늘 실측에서 찌그러진 뚜껑을 성공적으로 물었는데도
+        # 파지값이 빈 손(+0.7496)과 같게 나온 사례가 있다. 그런 품목에
+        # 억지로 반응하면 성공한 파지를 버린다.
+        #
+        # **[주의] 오탐 위험**: battery는 파지값 +0.6232, 임계값 +0.6864로
+        # 여유가 0.0493rad뿐이다(실측 1회, 눕힌 자세만). 정상 파지가
+        # 실패로 읽히면 그 물체를 놓고 지나간다. 오탐이 관찰되면 우선
+        # battery의 `grasp_fail_joint_rad`를 null로 바꿔 판정에서 빼는
+        # 것으로 대응할 것 -- 2단계 전체를 끄기보다 품목 단위로 끄는
+        # 편이 손실이 적다.
+        grasp_ok = self._check_grasp(item_key)
+        if grasp_ok is False:
+            self.get_logger().warn(
+                f"[EXEC] {item_key} 파지 실패 -- 배치/계량 생략하고 다음 대상으로 복귀"
+            )
+            self._publish_ui_alert("warn", f"{item_key} 파지 실패 — 재시도 대기")
+            self._abort_pick_and_return(item_key)
+            return
+
         self._holding = True
 
         # [v48 회신, v23 원칙 개정] 파지 성공 -- 배치+복귀 완료까지
         # 벨트 정지(다음 물체가 처리 중 도달범위를 벗어나는 문제
         # 방지). 검출~추적~예측~파지 구간은 벨트가 돌았음(칼만
         # 예측이 실제로 필요한 구간, 그대로 유지).
-        self.get_logger().info("[EXEC] pick complete, stopping conveyor for placement")
-        self._call_conveyor("off")
+        # [9일차] 인터록도 사유 집합의 원소 하나로 넣는다 -- 1단계에서
+        # 구조가 자연스럽게 검증된다. stop_during_pick=false면 파지 중에도
+        # 벨트를 세우지 않는다(2단계 무정지 시험).
+        if self._stop_during_pick:
+            self.get_logger().info("[EXEC] pick complete, stopping conveyor for placement")
+            self._hold("interlock")
         self._stage = "measure"
 
         # [완료 — 8일차, v103] **`measure_pose` 복원 — 무게는 항상
@@ -1602,6 +1917,17 @@ class TrackingNode(Node):
         # 안과의 결정적 차이이고, 6일차 extra_gap 버그가 재발하지
         # 않는 이유다.
         if weight_check is not None:
+            # [9일차, v139] **계량 중에는 벨트를 잠깐 세운다.**
+            # 무정지 전환(stop_during_pick=false) 시험에서 벨트 진동이
+            # 계량에 그대로 실려 빈 캔이 net 106.2g으로 측정됐다
+            # (실제 약 16g, 기준 80g -> review_bin 오배치).
+            # post-pick 샘플 폭 61.2g vs baseline 폭 7.4g.
+            # 정지 상태 계량은 이미 검증된 조건(net 오차 1.6g)이므로
+            # 그 조건을 보존한다. 파지 사이클 17~24초 중 1~2초라
+            # 무정지의 시각적 이득은 거의 그대로 유지된다.
+            # **baseline 쪽은 절대 세우지 않는다** -- 예측 구간
+            # (extra_gap/total_ahead) 안이라 파지 타이밍이 틀어진다.
+            self._hold("weighing")
             measure_pose = [
                 mt.get("default_return_x", 300.0),
                 mt["belt_hover_y"], mt["belt_hover_z"],
@@ -1642,7 +1968,13 @@ class TrackingNode(Node):
         # measurement 평균으로 줄인다.
         forced_bin = None
         if weight_check is not None:
-            weight_kg = self._weigh_with_log(f"{item_key}-postpick", n_log=15)
+            weight_kg = self._weigh_with_log(f"{item_key}-postpick")
+            # [9일차] n_log=15 제거. 15샘플이 판정에 쓰이는 건 앞 5개뿐인데,
+            # 나머지 10개가 계량 구간을 약 8.8초 늘리고 있었다(측정 1회당
+            # 서비스 호출 지연 약 0.7초 + interval 0.15초 = 약 0.85초).
+            # 무정지 전환으로 이 구간만큼 벨트를 세우게 되면서 그 비용이
+            # 그대로 드러났다. 진동 패턴 분석용 표본은 8일차에 충분히
+            # 쌓였다.
             threshold = weight_check["threshold_kg"]
             net_weight = None
             if weight_kg is not None and baseline_weight is not None:
@@ -1652,7 +1984,25 @@ class TrackingNode(Node):
                 f"baseline={baseline_weight}kg net={net_weight}kg "
                 f"(threshold={threshold}kg)"
             )
-            if net_weight is not None and net_weight > threshold:
+            # [9일차] **계측 신뢰불가 판정.** net이 물리적으로 불가능한
+            # 음수면(물체를 들었는데 가벼워짐) baseline이 벨트 진동으로
+            # 튄 것이다 -- 실측 -137.6g. 이때 값을 그대로 믿으면 반대
+            # 부호일 때 내용물 든 캔이 가볍게 측정돼 사람에게 갈 수 있다.
+            # 무게초과와 같은 처리(review_bin 강제)를 하되 **로그는
+            # 구분**한다. bin행 품목도 같이 걸려 정상 캔이 가끔
+            # review_bin으로 갈 수 있는데, 성가심 수준이고 안전 문제가
+            # 아니므로 감수한다(v141 지시).
+            if net_weight is not None and net_weight < -0.03:
+                forced_bin = weight_check["review_bin"]
+                self.get_logger().warn(
+                    f"[EXEC] {item_key} 무게판정 신뢰불가(net={net_weight*1000:.1f}g "
+                    f"< -30g, 물리적으로 불가능) -- {forced_bin} 강제"
+                )
+                self._publish_ui_alert(
+                    "warn",
+                    f"{item_key} 무게 측정 신뢰불가({net_weight*1000:.0f}g) — {forced_bin}으로 보냄",
+                )
+            elif net_weight is not None and net_weight > threshold:
                 forced_bin = weight_check["review_bin"]
                 self.get_logger().warn(
                     f"[EXEC] {item_key} over weight threshold -- routing to "
@@ -1662,6 +2012,9 @@ class TrackingNode(Node):
                     "warn",
                     f"{item_key} 무게 초과({net_weight:.3f}kg) — {forced_bin}으로 보냄",
                 )
+
+        if weight_check is not None:
+            self._release("weighing")
 
         # [8일차] `/ui/state`의 `last` 필드용 -- 실제 배치 통(`dest`)은
         # 배치가 끝난 뒤에 채운다(여기서는 아직 미확정).
@@ -1674,6 +2027,53 @@ class TrackingNode(Node):
 
         self.get_logger().info(f"[EXEC] pick complete for {item_key}, placing...")
         self._place_item(item_key, forced_bin=forced_bin)
+
+    def _abort_pick_and_return(self, item_key: str) -> None:
+        """[9일차, v118 2단계] 파지 실패 시 사이클을 즉시 접고 복귀한다.
+
+        통 이동·계량·벨트 정지를 전부 생략한다 -- 빈 손으로 그 과정을
+        도는 것은 순수한 낭비다(사용자 지적). 복귀 위치는 배치 경로와
+        같은 규칙을 쓴다: 남은 트랙 중 가장 앞선 물체 쪽, 없으면 기본값.
+        """
+        mt = self._motion_timing
+        h_vel = [mt["horizontal_vel"], mt["horizontal_acc"]]
+
+        # [정정 -- 9일차] **여기서 그리퍼를 열지 않는다.**
+        # 처음엔 "허공을 문 채로 두지 않는다"는 이유로 열었는데, 실제로
+        # 돌려보니 정반대 결과가 났다: 종이박스를 실제로 물고 있었는데
+        # (joint +0.6038/+0.6057, 빈 손은 +0.7496) 오분류로 페트병
+        # 임계값(0.5089)을 적용받아 실패로 판정됐고, 이 open이 물체를
+        # 그 자리에 떨어뜨렸다. **판정이 틀렸을 때 물체를 놓는 것이
+        # 그냥 들고 복귀하는 것보다 훨씬 나쁘다.**
+        # 어차피 다음 파지 직전에 "open gripper (approach 전 확인)"이
+        # 있으므로 여기서 열 필요가 없다.
+
+        next_x = max((t["kf"].state.x for t in self._tracks), default=None)
+        if next_x is None:
+            next_x = mt.get("default_return_x", 300.0)
+        self.get_logger().info(
+            f"[EXEC] 파지 실패 복귀 -- belt hover (x={next_x:.1f})"
+        )
+        belt_hover = [
+            next_x, mt["belt_hover_y"], mt["belt_hover_z"],
+            mt["belt_hover_rx"], mt["belt_hover_ry"], mt["belt_hover_rz"],
+        ]
+        self._call_move_line(belt_hover, h_vel, h_vel, mode=0)
+
+        # 이 시점엔 아직 interlock/weighing을 걸기 전이지만, 경로가
+        # 바뀌어도 사유가 남지 않도록 방어적으로 푼다(사유 집합은
+        # 없는 원소를 지워도 안전하다).
+        self._release("interlock")
+        self._release("weighing")
+
+        self._holding = False
+        self._stage = "idle"
+        self._grasp_fail_counts[item_key] = (
+            self._grasp_fail_counts.get(item_key, 0) + 1
+        )
+        self.get_logger().info(
+            f"[EXEC] 파지 실패 누적 {item_key}={self._grasp_fail_counts[item_key]}회"
+        )
 
     def _place_item(self, item_key: str, forced_bin: str | None = None) -> None:
         """상태머신 골격(6일차) — 품목별 통 배치 또는 사람전달 placeholder.
@@ -1772,7 +2172,7 @@ class TrackingNode(Node):
             self._last_result["dest"] = bin_name
         self._stage = "idle"
         self.get_logger().info(f"[PLACE] {item_key} placed in {bin_name}, restarting conveyor")
-        self._call_conveyor("on")
+        self._release("interlock")
 
     def _handoff_item(self, item_key: str) -> None:
         """실제 순응제어 기반 사람 핸드오버 (6일차 구현, 8일차 안전 재작성).
@@ -1852,7 +2252,9 @@ class TrackingNode(Node):
         #   (2) 정상 라벨 페트병의 무게 분포 실측치가 아직 없다.
         # 그래서 여기서는 **측정하고 로그만 남긴다** -- 정상 핸드오버가
         # 무게 때문에 막히는 회귀 없이 임계값 산정용 데이터를 모은다.
-        self._weigh_with_log(f"handoff-{item_key}-presented", n_log=15)
+        self._weigh_with_log(f"handoff-{item_key}-presented")
+        # [9일차] n_log=15 제거 -- 이 호출은 순응제어 진입 **전**이라
+        # 사람이 받으러 오기까지 약 13초를 그냥 기다리게 만들고 있었다.
 
         # ------------------------------------------------------------------
         # 2) 순응모드 진입
@@ -2000,7 +2402,7 @@ class TrackingNode(Node):
                 self._last_result["dest"] = "human_handoff"
             self._stage = "idle"
             self.get_logger().info(f"[HANDOFF] {item_key} handed off, restarting conveyor")
-            self._call_conveyor("on")
+            self._release("interlock")
             return
 
         # ------------------------------------------------------------------
@@ -2099,7 +2501,7 @@ class TrackingNode(Node):
             f"-- handoff_timeout_count[{item_key}]="
             f"{self._handoff_timeout_counts[item_key]}"
         )
-        self._call_conveyor("on")
+        self._release("interlock")
 
 
 def main(args=None):

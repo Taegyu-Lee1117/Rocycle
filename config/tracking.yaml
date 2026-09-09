@@ -1,7 +1,13 @@
 # tracking_node 설정 — 3일차 실측 반영
 # 설계문서 재활용로봇_설계문서_v27.txt 13절 작업 순서 참고
 
-tracking_node:
+# [수정 -- 9일차] 최상위 키가 `tracking_node`였는데 실제 실행 노드는
+# `tracking_pick_node`다. ROS2 params 파일은 노드 이름이 정확히
+# 일치할 때만 적용되므로 **이 파일의 파라미터가 전혀 적용되지 않고
+# 있었다** -- 캘리브레이션(cam_to_base/belt_plane)이 기본값(빈 값/0)인
+# 채로 떠서 `calibration ready=False`, pixel_to_base가 전부 실패했다.
+# 로봇은 좌표 계산 단계에서 막혀 움직이지 않았으므로 사고는 없었다.
+tracking_pick_node:
   ros__parameters:
     camera.fx: 1427.528173
     camera.fy: 1429.801911
@@ -14,10 +20,12 @@ tracking_node:
     # v29 13절 참고)
     # [정정 — 6일차, v61 회신] 특정 계정의 홈 디렉터리가 박힌
     # 절대경로였던 걸 패키지 상대경로로 변경 — 관제 PC 등 다른
-    # 계정/경로로 옮겨도 그대로 동작한다(resolve_model_path로 해석,
-    # tracking_node.py 참고). 반드시 T_cam2base.npy만 쓸 것 —
-    # 같은 폴더의 _suspect 접미사 파일들은 실패작이니 쓰지 말 것
+    # 계정/경로로 옮겨도 그대로 동작한다. 반드시 T_cam2base.npy만
+    # 쓸 것 — 같은 폴더의 _suspect 접미사 파일들은 실패작이다
     # (캘리브레이션_안내.md 참고).
+    # [9일차] 이 상대경로를 해석하는 코드가 tracking_pick_node에
+    # 없어서 실제로는 동작하지 않았다 -- _load_cam_to_base에 패키지
+    # share 기준 해석을 추가했다.
     camera.cam_to_base_path: "calib_capture/T_cam2base.npy"
 
     # 작업 B 결과 (3일차, 5점 수동 티칭, 잔차 최대 0.33mm)
