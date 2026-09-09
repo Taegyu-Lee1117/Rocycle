@@ -81,12 +81,16 @@
 
 | 품목 | 파지력 | close_wait | 파지 깊이(호버 기준) |
 |---|---|---|---|
-| can | 10N | 2.0s | 100mm |
-| paper | 10N | 2.0s | 110mm(8일차, battery와 동일 높이로 상향) |
+| can | **15N**(9일차 밤 10→15 상향, 찌그러짐 없음 확인) | 2.0s | 100mm |
+| paper | (시연에서 완전 제외됨, 아래 "현재 단계" 참고) | — | — |
 | battery(AA) | 기본값(~40N) | 1.0s | 110mm (Y=-264 고정) |
 | pet_labeled | 기본값(~40N) | 1.0s | 100mm |
-| plastic(9일차 저녁 실측 완료) | 10N(can과 동일) | 2.5s | 115mm |
+| plastic | 10N | 2.5s | 115mm |
 | plastic_bag | 기본값(~40N) | 1.0s | [전제] |
+
+`prediction_bias_mm`(품목별, 9일차 밤 클램프 참값 4.98mm/s
+재검증 후 전부 불변 확정): can=0, battery=+30, plastic=+20.
+칼만 vx 클램프 4.6~5.3mm/s(참값 기준, 전역 파라미터).
 
 (전체 설정: `config/gripper_profiles.yaml`, `grasp_fail_joint_rad`는
 `config/gripper_profiles.yaml` 별도 필드 — 아래 "알려진 함정"
@@ -527,7 +531,9 @@ CPU 2.93Hz vs GPU 7.56Hz 확인, 검출 백로그 버그로 `header.stamp`
 `min_consecutive_frames` 9→23 비례조정 필수. crop 속도이득
 2.15배 유효. 둘 다 시연 이후 함께 재검증.
 
-### [팀결정, 최종] 시연 물체 구성 — 6개 물체, paper 완전 제외
+### [팀결정, 최종] 시연 물체 구성 — 7개 물체(장갑 포함), paper 완전 제외
+**[표기 정정]** 이전에 "6개"로 적었던 건 셈 실수 — 아래 표는
+7행이고, 장갑(미학습)까지 포함해 7개가 맞음.
 ```
 빈 콜라캔 355ml         → can_bin
 샌드 캔 490ml(400g)      → 무게 차단 → review_bin
