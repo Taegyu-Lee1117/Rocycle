@@ -69,7 +69,7 @@ import rclpy
 from rclpy.executors import SingleThreadedExecutor
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
-from sensor_msgs.msg import CameraInfo, JointState
+from sensor_msgs.msg import CameraInfo, Image, JointState
 from std_msgs.msg import String
 
 try:
@@ -252,6 +252,38 @@ class TrackingNode(Node):
         self.declare_parameter("kalman.vx_min_mm_s", 0.0)
         self.declare_parameter("kalman.vx_max_mm_s", 6.0)
 
+        # ============================================================
+        # [9일차 야간, v155] **파지 자세 검증 1단계 -- 손목캠 기록만.**
+        # ============================================================
+        # 목적: 관절위치 기반 파지판정(`_check_grasp`)의 사각지대를
+        # 메우기 위한 데이터 수집이다. `plastic`(뚜껑)/`plastic_bag`
+        # (비닐)은 같은 물체라도 어디를 무느냐에 따라 관절각이 크게
+        # 벌어져 임계값 자체를 못 잡는다(9일차 실측: 찌그러진 뚜껑을
+        # 성공적으로 물었는데 파지값이 빈 손 +0.7496과 같게 나옴).
+        #
+        # **이 단계는 판정하지 않는다.** ROI를 캡처해 파일로 저장하고
+        # 통계만 로그에 남긴다. 사이클 동작은 전혀 바뀌지 않는다.
+        # 임계값은 품목별 표본이 쌓인 뒤에 정한다 -- 근거 없는 임계값을
+        # 넣어두면 다음 단계에서 그걸 믿고 동작을 바꿀 때 위험하다.
+        #
+        # **ROI 근거(실측)**: 손목 리얼센스는 그리퍼를 거의 못 본다.
+        # 그리퍼를 열고 닫으며 프레임을 차분한 결과 변화 영역이
+        # x 330~540 / y 420~480(640x480 기준)뿐이었다 -- 화면 맨 아래
+        # 가장자리에 손가락 끝(노란 패드)만 걸친다. 열면 손가락이
+        # 화면 밖으로 나가고, 나머지 화면은 전부 벨트와 바닥이다.
+        # ROI가 화면 고정 좌표라 좌표변환이 없고, 따라서 eye-in-hand
+        # 캘리브레이션도 필요 없다.
+        self.declare_parameter("grasp_check.enabled", True)
+        self.declare_parameter(
+            "grasp_check.image_topic", "/camera/camera/color/image_raw"
+        )
+        self.declare_parameter("grasp_check.roi", [330, 410, 540, 480])
+        self.declare_parameter("grasp_check.save_dir", "")
+        self.declare_parameter("grasp_check.wait_sec", 0.6)
+        # 배경(초록 벨트 + 나무 상판) 노출 비율 임계값. 이 값보다 높으면
+        # "그리퍼에 아무것도 없음"으로 본다. **로그에만 쓴다(1단계).**
+        self.declare_parameter("grasp_check.bg_threshold", 0.25)
+
         self._min_consecutive_frames = (
             self.get_parameter(
                 "vision.min_consecutive_frames"
@@ -296,6 +328,25 @@ class TrackingNode(Node):
         self._image_width = self.get_parameter("vision.image_width_px").value
         self._vx_min = self.get_parameter("kalman.vx_min_mm_s").value
         self._vx_max = self.get_parameter("kalman.vx_max_mm_s").value
+
+        # [v155] 손목캠 파지 기록. `_wrist_frame`은 마지막 수신 프레임을
+        # (monotonic 수신시각, encoding, height, width, bytes)로 들고 있다.
+        # 변환은 캡처 시점에만 한다 -- 15Hz 콜백에서 매번 numpy 변환하면
+        # 검출 콜백과 같은 executor를 쓰는 구간에서 낭비가 크다.
+        self._grasp_check_enabled = self.get_parameter("grasp_check.enabled").value
+        self._grasp_check_topic = self.get_parameter("grasp_check.image_topic").value
+        _roi = list(self.get_parameter("grasp_check.roi").value or [])
+        self._grasp_check_roi = tuple(int(v) for v in _roi) if len(_roi) == 4 else None
+        _sdir = self.get_parameter("grasp_check.save_dir").value or ""
+        self._grasp_check_dir = (
+            Path(_sdir).expanduser() if _sdir else Path.home() / "grasp_check"
+        )
+        self._grasp_check_wait = float(self.get_parameter("grasp_check.wait_sec").value)
+        self._grasp_check_bg_th = float(
+            self.get_parameter("grasp_check.bg_threshold").value
+        )
+        self._wrist_frame = None
+        self._grasp_check_seq = 0
 
         # [완료 — 6일차, 순차 처리 인덱싱] 물체 1개 기준 단일 상태
         # (_pending_class/_locked_class/self._kf 하나)를 물체별 트랙
@@ -475,6 +526,17 @@ class TrackingNode(Node):
             self._robot_node.create_subscription(
                 JointState, "/onrobot_joint_states", self._on_gripper_joint, 10
             )
+            # [v155] 손목캠도 **`_robot_node`에** 건다. TrackingNode 쪽에
+            # 걸면 `_execute_pick`의 블로킹 구간 동안 콜백이 안 돌아
+            # 파지 직후에 파지 이전 프레임이 잡힌다 -- `_gripper_joint`가
+            # 똑같은 이유로 오판을 냈던 전례(6일차)와 같은 구조다.
+            if self._grasp_check_enabled:
+                self._robot_node.create_subscription(
+                    Image,
+                    self._grasp_check_topic,
+                    self._on_wrist_image,
+                    qos_profile_sensor_data,
+                )
             self._get_posx_client = self._robot_node.create_client(
                 GetCurrentPosx, "/dsr01/dsr_controller2/aux_control/get_current_posx"
             )
@@ -654,6 +716,114 @@ class TrackingNode(Node):
             self._gripper_joint = msg.position[msg.name.index("finger_joint")]
         except (ValueError, IndexError):
             pass
+
+    def _on_wrist_image(self, msg) -> None:
+        """[v155] 손목 리얼센스 컬러 프레임 보관 -- 변환 없이 원본만."""
+        self._wrist_frame = (
+            time.monotonic(), msg.encoding, msg.height, msg.width, msg.data
+        )
+
+    def _capture_grasp_view(self, item_key: str) -> None:
+        """[9일차 야간, v155] **파지 자세 검증 1단계 -- 기록만 한다.**
+
+        파지 상승 직후 손목캠 ROI를 저장하고 통계를 로그에 남긴다.
+        **판정하지 않고, 사이클도 바꾸지 않는다.** 관절위치 판정이
+        원리적으로 못 쓰는 품목(`plastic`/`plastic_bag`)의 임계값을
+        정하려면 라벨이 붙은 표본이 먼저 필요하기 때문이다 -- 완주
+        1회를 돌리면 관절각 판정과 사용자 육안으로 품목별 정답이
+        붙는다.
+
+        전 구간이 try/except로 감싸여 있다. 이 기능의 어떤 실패도
+        파지 사이클을 깨서는 안 된다(진단 기능이 운용을 망가뜨리면
+        안 된다는 `_weigh_with_log`와 같은 원칙).
+        """
+        if not self._grasp_check_enabled or self._grasp_check_roi is None:
+            return
+        try:
+            # 블로킹 직후라 마지막 콜백이 오래됐을 수 있다 -- `_check_grasp`
+            # 과 같은 이유로 executor를 잠깐 돌려 최신 프레임을 받는다.
+            # 15Hz 발행이라 0.6초면 여러 장이 들어온다.
+            if self._robot_executor is not None:
+                deadline = time.monotonic() + self._grasp_check_wait
+                while time.monotonic() < deadline:
+                    self._robot_executor.spin_once(timeout_sec=0.05)
+
+            frame = self._wrist_frame
+            if frame is None:
+                self.get_logger().warn(
+                    "[GRIPVIEW] 손목캠 프레임 미수신 -- 기록 건너뜀"
+                )
+                return
+            recv_t, enc, h, w, data = frame
+            age = time.monotonic() - recv_t
+
+            arr = np.frombuffer(bytes(data), dtype=np.uint8)
+            if arr.size != h * w * 3:
+                self.get_logger().warn(
+                    f"[GRIPVIEW] 예상 못 한 프레임 크기 {arr.size} "
+                    f"(h={h} w={w} enc={enc}) -- 기록 건너뜀"
+                )
+                return
+            img = arr.reshape(h, w, 3)
+
+            x1, y1, x2, y2 = self._grasp_check_roi
+            x1 = max(0, min(x1, w - 1)); x2 = max(x1 + 1, min(x2, w))
+            y1 = max(0, min(y1, h - 1)); y2 = max(y1 + 1, min(y2, h))
+            roi = img[y1:y2, x1:x2].astype(np.float32)
+
+            # rgb8 기준 채널 분리. 다른 인코딩이면 채널 순서만 다르고
+            # 통계의 의미는 유지되므로 그대로 계산하되 로그에 남긴다.
+            r, g, b = roi[:, :, 0], roi[:, :, 1], roi[:, :, 2]
+            gray = 0.299 * r + 0.587 * g + 0.114 * b
+            # **판정 원리**: 물체를 물면 그것이 ROI를 가려 배경이 안 보인다.
+            # 배경은 두 가지다 -- 초록 벨트와 나무 상판. 둘의 노출 비율
+            # 합을 쓴다.
+            # 실측 3표본(9일차 야간, 같은 자세 300,-264,430):
+            #   빈 그리퍼(닫힘)  배경 56.8% (초록 36.8 + 나무 20.0)
+            #   뚜껑 파지 성공   배경  8.1%
+            #   비닐 파지 성공   배경  7.7%
+            # 7.7~8.1 vs 56.8로 크게 갈린다. 기본 임계 0.25는 그 사이다.
+            # **표본이 빈손 1 / 파지 2뿐이므로 아직 동작에 쓰지 않는다.**
+            green = ((g > r + 15.0) & (g > b + 15.0)).mean()
+            wood = ((r > b + 25.0) & (r > 120.0) & (g > b + 10.0)).mean()
+            bg = float(green + wood)
+            edge = (
+                np.abs(np.diff(gray, axis=0)).mean()
+                + np.abs(np.diff(gray, axis=1)).mean()
+            ) / 2.0
+            verdict = "없음(빈손 의심)" if bg > self._grasp_check_bg_th else "있음"
+
+            saved = "-"
+            try:
+                import cv2  # 저장 실패가 사이클을 깨면 안 되므로 지역 import
+
+                self._grasp_check_dir.mkdir(parents=True, exist_ok=True)
+                self._grasp_check_seq += 1
+                name = (
+                    f"{time.strftime('%H%M%S')}_{self._grasp_check_seq:03d}_"
+                    f"{item_key}.png"
+                )
+                path = self._grasp_check_dir / name
+                bgr = img[:, :, ::-1] if enc == "rgb8" else img
+                out = np.ascontiguousarray(bgr).copy()
+                cv2.rectangle(out, (x1, y1), (x2 - 1, y2 - 1), (0, 255, 255), 2)
+                cv2.imwrite(str(path), out)
+                saved = str(path)
+            except Exception as exc:
+                saved = f"<저장 실패: {exc}>"
+
+            self.get_logger().info(
+                "[GRIPVIEW] %s 판정=%s (배경 %.1f%% / 임계 %.0f%%) "
+                "green=%.1f%% wood=%.1f%% gray_mean=%.1f gray_std=%.1f "
+                "edge=%.2f roi=(%d,%d,%d,%d) enc=%s age=%.2fs saved=%s "
+                "-- 기록 전용, 동작 변경 없음"
+                % (item_key, verdict, bg * 100.0, self._grasp_check_bg_th * 100.0,
+                   float(green) * 100.0, float(wood) * 100.0,
+                   float(gray.mean()), float(gray.std()), float(edge),
+                   x1, y1, x2, y2, enc, age, saved)
+            )
+        except Exception as exc:  # 진단 기능이 사이클을 깨선 안 된다
+            self.get_logger().warn(f"[GRIPVIEW] 기록 실패(무시하고 계속): {exc}")
 
     def _check_grasp(self, item_key: str) -> bool | None:
         """[8일차, v118 1단계] 파지 성공/실패 판정 -- **로그만, 동작 무변경.**
@@ -2004,6 +2174,12 @@ class TrackingNode(Node):
         # battery의 `grasp_fail_joint_rad`를 null로 바꿔 판정에서 빼는
         # 것으로 대응할 것 -- 2단계 전체를 끄기보다 품목 단위로 끄는
         # 편이 손실이 적다.
+        # [v155] 손목캠 기록 -- `_check_grasp`보다 먼저 부른다. 상승
+        # 직후에 가까울수록 물체 자세가 파지 직후 상태에 가깝고,
+        # 이 호출이 executor를 돌려주므로 뒤이은 관절값 읽기에도
+        # 최신 콜백이 반영된다.
+        self._capture_grasp_view(item_key)
+
         grasp_ok = self._check_grasp(item_key)
         if grasp_ok is False:
             self.get_logger().warn(
