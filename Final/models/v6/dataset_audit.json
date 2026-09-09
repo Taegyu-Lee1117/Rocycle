@@ -1,0 +1,73 @@
+{
+  "zip_sha256": "7046479b11671cb5da4f80c76d992f3f043ea8782513c967e28cad869e9ba0f2",
+  "zip_path": "/content/drive/MyDrive/cycle_pj/recycle_project.v6-recycle_dataset_ver6.yolov12.zip",
+  "data_yaml": "/content/recycle_v6_data/data_resolved.yaml",
+  "class_names": [
+    "battery",
+    "can",
+    "paper",
+    "pet_labeled",
+    "plastic",
+    "plastic_bag"
+  ],
+  "splits": {
+    "train": {
+      "images": 1500,
+      "label_files": 1500,
+      "objects_per_class": {
+        "pet_labeled": 305,
+        "can": 341,
+        "paper": 235,
+        "plastic_bag": 203,
+        "battery": 180,
+        "plastic": 238
+      },
+      "missing_label_count": 0,
+      "empty_label_count": 0,
+      "invalid_label_count": 0,
+      "missing_label_examples": [],
+      "empty_label_examples": [],
+      "invalid_label_examples": []
+    },
+    "valid": {
+      "images": 427,
+      "label_files": 427,
+      "objects_per_class": {
+        "pet_labeled": 87,
+        "can": 97,
+        "paper": 67,
+        "battery": 51,
+        "plastic_bag": 57,
+        "plastic": 68
+      },
+      "missing_label_count": 0,
+      "empty_label_count": 0,
+      "invalid_label_count": 0,
+      "missing_label_examples": [],
+      "empty_label_examples": [],
+      "invalid_label_examples": []
+    },
+    "test": {
+      "images": 213,
+      "label_files": 213,
+      "objects_per_class": {
+        "pet_labeled": 43,
+        "can": 48,
+        "paper": 34,
+        "battery": 25,
+        "plastic_bag": 29,
+        "plastic": 34
+      },
+      "missing_label_count": 0,
+      "empty_label_count": 0,
+      "invalid_label_count": 0,
+      "missing_label_examples": [],
+      "empty_label_examples": [],
+      "invalid_label_examples": []
+    }
+  },
+  "converted_polygons": 2081,
+  "original_boxes": 61,
+  "cross_split_duplicate_groups": 0,
+  "cross_split_duplicate_examples": []
+}

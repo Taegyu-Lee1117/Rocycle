@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+ui_db_env/
+.test_deps/
+.runtime_deps/
+local_runtime/
+.pip_tmp/
+build/
+install/
+log/
+.env
