@@ -280,9 +280,64 @@ class TrackingNode(Node):
         self.declare_parameter("grasp_check.roi", [330, 410, 540, 480])
         self.declare_parameter("grasp_check.save_dir", "")
         self.declare_parameter("grasp_check.wait_sec", 0.6)
-        # 배경(초록 벨트 + 나무 상판) 노출 비율 임계값. 이 값보다 높으면
+        # 배경 노출 비율(채도·밝기 기준) 임계값. 이 값보다 높으면
         # "그리퍼에 아무것도 없음"으로 본다. **로그에만 쓴다(1단계).**
-        self.declare_parameter("grasp_check.bg_threshold", 0.25)
+        # 실측 8표본 기준 빈손 37.6~62.2% / 파지 7.6~9.6%의 중간값.
+        self.declare_parameter("grasp_check.bg_threshold", 0.23)
+        # ============================================================
+        # [9일차 야간, v156] **배치 확인 + depth 1단계 -- 전부 기록만.**
+        # ============================================================
+        # (a) 배치 확인 개방폭: 배치 후 그리퍼가 실제로 열렸는지 확인.
+        #     설계문서는 `/onrobot/pose`로 읽으라고 하는데 **실측 결과
+        #     그 서비스는 그리퍼 상태와 무관하게 항상 같은 값을 준다**
+        #     (열림/닫힘/재열림 모두 x=0.0843, y=0.1904). 개방폭 신호는
+        #     `/onrobot_joint_states`뿐이다 -- 열림 ±0.4793rad, 빈손
+        #     닫힘 +0.7496rad. 이미 `_gripper_joint`로 받고 있으므로
+        #     그 값을 쓴다.
+        # (b) 배치 스냅샷: 배치 직후 손목캠 ROI를 같이 남긴다. 그리퍼가
+        #     열렸는데도 물체가 남아 있는 경우(끼임)를 눈으로 확인할
+        #     자료가 된다.
+        # (c) depth 1단계: 파지 시점 ROI의 거리 통계를 로그에 남긴다.
+        #     고정 하강깊이(100/110/115mm)의 타당성을 사후 검증하기
+        #     위한 자료다. **좌표 변환을 하지 않으므로 캘리브레이션이
+        #     필요 없다.** [한계] depth와 color는 정렬돼 있지 않아
+        #     같은 ROI 좌표가 정확히 같은 영역은 아니다 -- 1단계에서는
+        #     경향만 본다.
+        self.declare_parameter("place_check.enabled", True)
+        self.declare_parameter("place_check.open_joint_rad", -0.4793)
+        self.declare_parameter("place_check.open_tolerance_rad", 0.15)
+        # ============================================================
+        # [9일차 야간, v157] **회전각 추정 1단계 -- 로그만.**
+        # ============================================================
+        # 고정캠(C270) 원본 프레임에서 검출 bbox 안의 물체 장축 각도를
+        # 추정한다. 벨트가 균일한 초록이라 색으로 물체를 분리하고,
+        # 최소 회전 사각형(minAreaRect)의 장축 각도를 쓴다.
+        # 0도 = 화면 가로 = 벨트 진행 방향.
+        #
+        # **[중요] 이 기능은 지금 실효가 없다.** 전제가 "물체가 비스듬히
+        # 놓이면 그리퍼를 그 각도로 돌린다"인데, 9일차 야간 실측에서
+        # **비스듬한 캔은 애초에 검출되지 않는다**는 것이 확인됐다:
+        #     벨트와 나란히   77/77 프레임 (conf 0.90)
+        #     45도 비스듬히    0/77 프레임
+        #     벨트 가로지름    1/77 프레임
+        # 같은 캔·같은 자리에서 각도만 바꾼 결과이고, 같은 프레임의
+        # 뚜껑/건전지는 세 번 다 77/77로 안정적이었다(카메라·조명
+        # 문제가 아니다). 학습 사진을 캔이 가로로 놓인 상태로만
+        # 찍었기 때문일 가능성이 크다 -- 즉 **모델 학습 데이터 문제**다.
+        # 돌려야 할 물체가 검출되지 않으므로 2단계(rz 적용)로 갈 이유가
+        # 없고, 1단계는 과제 구색과 기록 목적으로만 둔다(사용자 판단).
+        #
+        # 추정기 자체는 동작이 확인됐다(같은 장면 3회 반복):
+        #     뚜껑     세장비 1.08  -> 원형이라 각도 무의미(자동 배제 근거)
+        #     490캔    세장비 2.79  (실제 168/66 = 2.5와 일치)
+        #     건전지   세장비 2.90, 각도 -5.1 ~ -5.7도로 일관
+        self.declare_parameter("rotation_check.enabled", True)
+        self.declare_parameter("rotation_check.image_topic", "/image_raw")
+        self.declare_parameter("rotation_check.min_elongation", 1.2)
+        self.declare_parameter("depth_check.enabled", True)
+        self.declare_parameter(
+            "depth_check.image_topic", "/camera/camera/depth/image_rect_raw"
+        )
 
         self._min_consecutive_frames = (
             self.get_parameter(
@@ -345,6 +400,22 @@ class TrackingNode(Node):
         self._grasp_check_bg_th = float(
             self.get_parameter("grasp_check.bg_threshold").value
         )
+        self._place_check_enabled = self.get_parameter("place_check.enabled").value
+        self._place_open_joint = float(
+            self.get_parameter("place_check.open_joint_rad").value
+        )
+        self._place_open_tol = float(
+            self.get_parameter("place_check.open_tolerance_rad").value
+        )
+        self._rot_check_enabled = self.get_parameter("rotation_check.enabled").value
+        self._rot_check_topic = self.get_parameter("rotation_check.image_topic").value
+        self._rot_min_elong = float(
+            self.get_parameter("rotation_check.min_elongation").value
+        )
+        self._fixed_frame = None
+        self._depth_check_enabled = self.get_parameter("depth_check.enabled").value
+        self._depth_check_topic = self.get_parameter("depth_check.image_topic").value
+        self._wrist_depth = None
         self._wrist_frame = None
         self._grasp_check_seq = 0
 
@@ -500,6 +571,15 @@ class TrackingNode(Node):
             CameraInfo, "/camera_info", self._on_camera_info, qos_profile_sensor_data
         )
 
+        # [v157] 고정캠 원본. **메인 노드에 건다** -- 회전각 추정은
+        # PICK TRIGGER 시점(=`_on_detection` 안, 블로킹 이전)에 하므로
+        # 손목캠처럼 `_robot_node`로 옮길 필요가 없다.
+        if self._rot_check_enabled:
+            self.create_subscription(
+                Image, self._rot_check_topic, self._on_fixed_image,
+                qos_profile_sensor_data,
+            )
+
         self.create_timer(0.5, self._publish_ui_state)
         # [9일차, v139] 사유집합 워치독 -- 사유가 안 풀린 채 오래 지나면
         # 통째로 비우고 경고한다. 사유별이 아니라 집합 전체에 건다.
@@ -535,6 +615,13 @@ class TrackingNode(Node):
                     Image,
                     self._grasp_check_topic,
                     self._on_wrist_image,
+                    qos_profile_sensor_data,
+                )
+            if self._depth_check_enabled:
+                self._robot_node.create_subscription(
+                    Image,
+                    self._depth_check_topic,
+                    self._on_wrist_depth,
                     qos_profile_sensor_data,
                 )
             self._get_posx_client = self._robot_node.create_client(
@@ -663,6 +750,8 @@ class TrackingNode(Node):
             "last_z": None,
             "last_detection_time": None,
             "lost_count": 0,
+            # [v157] 회전각 추정용. 마지막으로 관측된 검출 bbox.
+            "last_bbox": None,
         }
 
     def _match_track(
@@ -717,13 +806,166 @@ class TrackingNode(Node):
         except (ValueError, IndexError):
             pass
 
+    def _on_fixed_image(self, msg) -> None:
+        """[v157] 고정캠(C270) 원본 프레임 보관 -- 변환 없이 원본만."""
+        self._fixed_frame = (msg.encoding, msg.height, msg.width, msg.data)
+
+    def _estimate_rotation(self, track: dict) -> None:
+        """[9일차 야간, v157] **회전각 추정 1단계 -- 로그만 남긴다.**
+
+        검출 bbox 안에서 초록 벨트가 아닌 화소를 물체로 보고, 가장 큰
+        외곽선의 최소 회전 사각형에서 장축 각도를 얻는다.
+        0도 = 화면 가로 = 벨트 진행 방향.
+
+        세장비(장축/단축)가 `rotation_check.min_elongation` 미만이면
+        원형에 가까워 각도가 무의미하므로 "회전 불필요"로 기록한다
+        (실측: 컵 뚜껑 1.08).
+
+        **rz를 바꾸지 않는다.** 2단계(적용)는 새 rz 조합마다 도달성을
+        재검증해야 하고, 무엇보다 비스듬한 캔이 검출되지 않아 적용할
+        대상 자체가 없다 -- 파라미터 선언부 주석 참고.
+        """
+        if not self._rot_check_enabled:
+            return
+        try:
+            import cv2  # 없으면 조용히 건너뛴다
+
+            frame = self._fixed_frame
+            bbox = track.get("last_bbox")
+            if frame is None or bbox is None:
+                return
+            enc, h, w, data = frame
+            arr = np.frombuffer(bytes(data), dtype=np.uint8)
+            if arr.size != h * w * 3:
+                return
+            img = arr.reshape(h, w, 3)
+            bgr = img[:, :, ::-1] if enc == "rgb8" else img
+            bgr = np.ascontiguousarray(bgr)
+
+            pad = 8
+            x1 = max(0, int(bbox[0]) - pad); y1 = max(0, int(bbox[1]) - pad)
+            x2 = min(w, int(bbox[2]) + pad); y2 = min(h, int(bbox[3]) + pad)
+            crop = bgr[y1:y2, x1:x2]
+            if crop.size == 0:
+                return
+            hsv = cv2.cvtColor(crop, cv2.COLOR_BGR2HSV)
+            H, S = hsv[:, :, 0], hsv[:, :, 1]
+            belt = (H >= 35) & (H <= 95) & (S > 60)
+            obj = (~belt).astype(np.uint8) * 255
+            k5 = np.ones((5, 5), np.uint8); k9 = np.ones((9, 9), np.uint8)
+            obj = cv2.morphologyEx(obj, cv2.MORPH_OPEN, k5)
+            obj = cv2.morphologyEx(obj, cv2.MORPH_CLOSE, k9)
+            cs, _ = cv2.findContours(obj, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            if not cs:
+                return
+            c = max(cs, key=cv2.contourArea)
+            area = float(cv2.contourArea(c))
+            if area < 200.0:
+                return
+            (_cx, _cy), (rw, rh), ang = cv2.minAreaRect(c)
+            if rw < rh:
+                ang += 90.0; rw, rh = rh, rw
+            ang = ((ang + 90.0) % 180.0) - 90.0
+            elong = rw / max(rh, 1.0)
+            note = (
+                "회전 불필요(원형에 가까움)"
+                if elong < self._rot_min_elong
+                else "장축 방향 유효"
+            )
+            self.get_logger().info(
+                "[ROTATE] %s 각도=%+.1f도 장축=%.0f 단축=%.0f 세장비=%.2f "
+                "면적=%.0f %s -- 기록 전용, rz 변경 없음"
+                % (track.get("class_name"), ang, rw, rh, elong, area, note)
+            )
+        except Exception as exc:  # 진단 기능이 사이클을 깨선 안 된다
+            self.get_logger().warn(f"[ROTATE] 추정 실패(무시하고 계속): {exc}")
+
     def _on_wrist_image(self, msg) -> None:
         """[v155] 손목 리얼센스 컬러 프레임 보관 -- 변환 없이 원본만."""
         self._wrist_frame = (
             time.monotonic(), msg.encoding, msg.height, msg.width, msg.data
         )
 
-    def _capture_grasp_view(self, item_key: str) -> None:
+    def _on_wrist_depth(self, msg) -> None:
+        """[v156] 손목 리얼센스 depth 프레임 보관 -- 변환 없이 원본만."""
+        self._wrist_depth = (
+            time.monotonic(), msg.encoding, msg.height, msg.width, msg.data
+        )
+
+    def _depth_roi_stats(self) -> str:
+        """[v156, depth 1단계] ROI 거리 통계 문자열. 실패해도 예외를 내지
+        않는다 -- 호출부가 이미 try 안이지만 여기서도 방어한다.
+
+        [한계] depth와 color는 정렬돼 있지 않아 같은 ROI 좌표가 정확히
+        같은 영역은 아니다. 1단계는 경향만 본다 -- 고정 하강깊이의
+        타당성 확인이 목적이고 좌표 변환은 하지 않는다.
+        """
+        if not self._depth_check_enabled or self._grasp_check_roi is None:
+            return "depth=off"
+        try:
+            frame = self._wrist_depth
+            if frame is None:
+                return "depth=미수신"
+            _t, enc, h, w, data = frame
+            arr = np.frombuffer(bytes(data), dtype=np.uint16)
+            if arr.size != h * w:
+                return f"depth=크기이상({arr.size},enc={enc})"
+            d = arr.reshape(h, w).astype(np.float32)
+            x1, y1, x2, y2 = self._grasp_check_roi
+            x1 = max(0, min(x1, w - 1)); x2 = max(x1 + 1, min(x2, w))
+            y1 = max(0, min(y1, h - 1)); y2 = max(y1 + 1, min(y2, h))
+            roi = d[y1:y2, x1:x2]
+            v = roi[roi > 0]
+            if v.size < 20:
+                return f"depth=유효화소부족({v.size})"
+            return (
+                "depth_valid=%.0f%% depth_min=%.0fmm depth_p50=%.0fmm"
+                % (100.0 * v.size / roi.size, float(v.min()),
+                   float(np.percentile(v, 50)))
+            )
+        except Exception as exc:
+            return f"depth=실패({exc})"
+
+    def _check_place_open(self, item_key: str, bin_name: str) -> None:
+        """[9일차 야간, v156] **배치 확인(a) -- 기록만 한다.**
+
+        배치 후 그리퍼가 실제로 열렸는지 관절값으로 확인한다. 열림은
+        약 -0.4793rad, 빈손 닫힘은 +0.7496rad이라 구분이 명확하다.
+        열리지 않았다면 물체가 통에 안 들어가고 아직 물려 있다는 뜻
+        이므로 경고를 남긴다 -- **다만 동작은 바꾸지 않는다(1단계).**
+
+        설계문서가 지정한 `/onrobot/pose`는 쓰지 않는다. 실측 결과
+        그리퍼 상태와 무관하게 항상 같은 값을 반환한다.
+        """
+        if not self._place_check_enabled:
+            return
+        try:
+            if self._robot_executor is not None:
+                deadline = time.monotonic() + 0.3
+                while time.monotonic() < deadline:
+                    self._robot_executor.spin_once(timeout_sec=0.05)
+            joint = self._gripper_joint
+            if joint is None:
+                self.get_logger().warn(
+                    "[PLACECHK] 그리퍼 위치 미수신 -- 개방 확인 건너뜀"
+                )
+                return
+            gap = abs(joint - self._place_open_joint)
+            ok = gap <= self._place_open_tol
+            msg = (
+                "[PLACECHK] %s -> %s 개방폭 joint=%+.4f (열림 기준 %+.4f, "
+                "차이 %.4f, 허용 %.4f) 판정=%s -- 기록 전용"
+                % (item_key, bin_name, joint, self._place_open_joint, gap,
+                   self._place_open_tol, "열림" if ok else "안 열림(의심)")
+            )
+            if ok:
+                self.get_logger().info(msg)
+            else:
+                self.get_logger().warn(msg)
+        except Exception as exc:
+            self.get_logger().warn(f"[PLACECHK] 확인 실패(무시하고 계속): {exc}")
+
+    def _capture_grasp_view(self, item_key: str, label: str = "grasp") -> None:
         """[9일차 야간, v155] **파지 자세 검증 1단계 -- 기록만 한다.**
 
         파지 상승 직후 손목캠 ROI를 저장하고 통계를 로그에 남긴다.
@@ -776,22 +1018,73 @@ class TrackingNode(Node):
             r, g, b = roi[:, :, 0], roi[:, :, 1], roi[:, :, 2]
             gray = 0.299 * r + 0.587 * g + 0.114 * b
             # **판정 원리**: 물체를 물면 그것이 ROI를 가려 배경이 안 보인다.
-            # 배경은 두 가지다 -- 초록 벨트와 나무 상판. 둘의 노출 비율
-            # 합을 쓴다.
-            # 실측 3표본(9일차 야간, 같은 자세 300,-264,430):
-            #   빈 그리퍼(닫힘)  배경 56.8% (초록 36.8 + 나무 20.0)
-            #   뚜껑 파지 성공   배경  8.1%
-            #   비닐 파지 성공   배경  7.7%
-            # 7.7~8.1 vs 56.8로 크게 갈린다. 기본 임계 0.25는 그 사이다.
-            # **표본이 빈손 1 / 파지 2뿐이므로 아직 동작에 쓰지 않는다.**
+            # 배경(초록 벨트 + 나무 상판)은 **색이 있고 밝다**. 물린
+            # 물체는 흰 뚜껑(채도 낮음)이든 검은 비닐(밝기 낮음)이든
+            # 둘 다 이 조건에서 빠진다. 그래서 지표는 OpenCV HSV 정의의
+            # `S > 50 AND V > 50`인 화소 비율이다.
+            #   V = max(R,G,B),  S = 255 * (max - min) / max
+            # cv2 없이 numpy로 계산해 저장 실패와 무관하게 늘 남는다.
+            #
+            # 실측 8표본(9일차 야간, 라벨 있음):
+            #   빈손(벨트 위 x=200/275/300/350/425/500)  37.6 ~ 62.2%
+            #   뚜껑 파지 성공                             7.6%
+            #   비닐 파지 성공                             9.6%
+            # 분리 여유 +28.1%p. 기본 임계 0.23은 그 중간이다.
+            #
+            # **[기각된 지표] "초록 벨트 + 나무 상판" RGB 색 판정.**
+            # x=200에서 24.9%까지 떨어져 빈손인데 "있음"으로 오판됐다
+            # (다른 위치는 52~63%). 원인은 나무 판정의 `r > 120` 조건
+            # 으로, 그 자리에서 상판이 조금 어둡게 잡히자 항이 통째로
+            # 빠졌다. 사진은 육안으로 거의 동일했다 -- 장면이 아니라
+            # 지표가 불안정했던 것이다.
+            #
+            # **[한계] 밝고 채도 높은 물체를 물면 오판한다.** 빨간 장갑,
+            # 노란/초록 캔 같은 것은 "배경처럼" 읽혀 빈손으로 판정될 수
+            # 있다. 지금 표본은 뚜껑(흰색)과 비닐(검은색)뿐이다.
+            vmax = roi.max(axis=2)
+            vmin = roi.min(axis=2)
+            sat = np.where(vmax > 0, 255.0 * (vmax - vmin) / np.maximum(vmax, 1.0), 0.0)
+            bg = float(((sat > 50.0) & (vmax > 50.0)).mean())
+            # 진단용 보조 지표(판정에는 쓰지 않는다)
             green = ((g > r + 15.0) & (g > b + 15.0)).mean()
             wood = ((r > b + 25.0) & (r > 120.0) & (g > b + 10.0)).mean()
-            bg = float(green + wood)
             edge = (
                 np.abs(np.diff(gray, axis=0)).mean()
                 + np.abs(np.diff(gray, axis=1)).mean()
             ) / 2.0
-            verdict = "없음(빈손 의심)" if bg > self._grasp_check_bg_th else "있음"
+            # **판정은 파지 시점(label="grasp")에만 유효하다.** 배경 기준이
+            # "초록 벨트 + 나무 상판"이라 벨트 위에서만 성립한다. 배치
+            # 시점(label="place")은 통 위에 있어 배경이 흰 플라스틱
+            # 바구니이고, 그리퍼가 열려 물체를 놓은 뒤인데도 배경비율이
+            # 0.1~4.4%로 나와 "있음"으로 잘못 읽힌다(9일차 야간 실측).
+            # 그 자리에서는 이미지만 기록하고 판정은 내지 않는다.
+            # **[철회 -- 9일차 야간] 판정을 내지 않는다.** 실패 표본이
+            # 실제로 나온 뒤 전부 뒤집혔다:
+            #   파지 실패(뚜껑) joint +0.7542  배경  9.6% -> "있음" 오판
+            #   파지 실패(뚜껑) joint +0.7542  배경  9.2% -> "있음" 오판
+            #   파지 성공(비닐) joint +0.7478  배경 26.0% -> "없음" 오판
+            #   파지 성공(뚜껑) joint -0.0095  배경  0.5% -> 정답
+            # 4건 중 1건만 맞았다.
+            #
+            # **원인은 구조적이다.** 파지에 실패하면 물체가 그리퍼 바로
+            # 아래 벨트에 그대로 남는다. 카메라는 그리퍼를 지나쳐 아래를
+            # 보므로 "물린 흰 뚜껑"과 "빈 그리퍼 아래 놓인 흰 뚜껑"이
+            # 거의 같은 그림이다. 앞서 모은 빈손 표본 6건은 벨트가
+            # 깨끗한 상태에서 찍은 것이라 이 경우를 대표하지 못했다.
+            #
+            # 후보 지표 4개(채도·밝기 / 배경색·밝기 / 표준편차 / 엣지)가
+            # 전부 겹친다. depth도 안 된다 -- 검은 비닐은 IR을 흡수해
+            # 거리가 안 잡히고 뒤쪽 벨트 거리(391mm)가 찍혀 실패
+            # 사례(392mm)와 구별되지 않는다.
+            #
+            # **다음 설계 후보**: 상승 후 물체가 아래에 있을 수 없는
+            # 전용 검사 자세(예: 통 위나 충분히 높은 곳)로 옮겨 촬영.
+            # 그러면 "물림"과 "빈손"의 배경이 확실히 갈린다. 사이클
+            # 시간이 늘어나므로 설계 결정이 필요하다.
+            #
+            # 그때까지는 **지표만 기록**한다. 근거 없는 판정이 로그에
+            # 남으면 다음 사람이 그걸 믿는다.
+            verdict = "미판정(지표 검증 실패 -- 위 주석 참고)"
 
             saved = "-"
             try:
@@ -801,7 +1094,7 @@ class TrackingNode(Node):
                 self._grasp_check_seq += 1
                 name = (
                     f"{time.strftime('%H%M%S')}_{self._grasp_check_seq:03d}_"
-                    f"{item_key}.png"
+                    f"{label}_{item_key}.png"
                 )
                 path = self._grasp_check_dir / name
                 bgr = img[:, :, ::-1] if enc == "rgb8" else img
@@ -813,14 +1106,15 @@ class TrackingNode(Node):
                 saved = f"<저장 실패: {exc}>"
 
             self.get_logger().info(
-                "[GRIPVIEW] %s 판정=%s (배경 %.1f%% / 임계 %.0f%%) "
+                "[GRIPVIEW/%s] %s 판정=%s (배경 %.1f%% / 임계 %.0f%%) "
                 "green=%.1f%% wood=%.1f%% gray_mean=%.1f gray_std=%.1f "
-                "edge=%.2f roi=(%d,%d,%d,%d) enc=%s age=%.2fs saved=%s "
+                "edge=%.2f %s roi=(%d,%d,%d,%d) enc=%s age=%.2fs saved=%s "
                 "-- 기록 전용, 동작 변경 없음"
-                % (item_key, verdict, bg * 100.0, self._grasp_check_bg_th * 100.0,
+                % (label, item_key, verdict, bg * 100.0,
+                   self._grasp_check_bg_th * 100.0,
                    float(green) * 100.0, float(wood) * 100.0,
                    float(gray.mean()), float(gray.std()), float(edge),
-                   x1, y1, x2, y2, enc, age, saved)
+                   self._depth_roi_stats(), x1, y1, x2, y2, enc, age, saved)
             )
         except Exception as exc:  # 진단 기능이 사이클을 깨선 안 된다
             self.get_logger().warn(f"[GRIPVIEW] 기록 실패(무시하고 계속): {exc}")
@@ -1179,6 +1473,7 @@ class TrackingNode(Node):
                     + (y2 - y1) * 0.95
                 )
                 bbox_x1, bbox_x2 = x1, x2
+                det_bbox = [x1, y1, x2, y2]   # [v157] 회전각 추정용
 
             elif (
                 "cx" in det
@@ -1189,6 +1484,7 @@ class TrackingNode(Node):
                 u = float(det["cx"])
                 v = float(det["cy"])
                 bbox_x1 = bbox_x2 = None
+                det_bbox = None
 
             else:
                 continue
@@ -1283,6 +1579,8 @@ class TrackingNode(Node):
             track["last_z"] = float(
                 base[2]
             )
+
+            track["last_bbox"] = det_bbox   # [v157]
 
             # ----------------------------------------
             # Kalman
@@ -1510,6 +1808,10 @@ class TrackingNode(Node):
                     best
                 )
             )
+
+            # [v157] 회전각 추정 -- 트리거 시점(블로킹 이전)이라 최신
+            # 고정캠 프레임이 들어와 있다. 로그만 남기고 rz는 안 바꾼다.
+            self._estimate_rotation(best)
 
             self.get_logger().info(
                 "PICK TRIGGER "
@@ -2522,6 +2824,12 @@ class TrackingNode(Node):
         self.get_logger().info("[PLACE] open gripper")
         self._call_gripper("o")
         time.sleep(self._item_routing.get("place_open_wait_sec", 1.0))
+
+        # [v156] 배치 확인(a) 개방폭 + (b) 배치 스냅샷 -- 둘 다 기록만.
+        # 그리퍼가 실제로 열렸는지, 열렸는데도 물체가 남아 있지는
+        # 않은지를 사후에 확인할 자료를 남긴다.
+        self._check_place_open(item_key, bin_name)
+        self._capture_grasp_view(item_key, label="place")
 
         self.get_logger().info(f"[PLACE] rise back to {bin_name} hover")
         self._call_move_line(hover_pose, v_vel, v_vel, mode=0)
