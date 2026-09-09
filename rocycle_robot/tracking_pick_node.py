@@ -239,6 +239,12 @@ class TrackingNode(Node):
         # 절반인 66ms를 기본값으로 둔다 -- 실시간 프레임이 이보다
         # 촘촘히 올 수는 없다.
         self.declare_parameter("vision.detection_min_gap_sec", 0.066)
+        # [9일차] 검출 박스가 화면 가로 경계에서 이 여유 안쪽에 닿으면
+        # 잘린 것으로 보고 버린다. 물체가 화면에 온전히 들어온 뒤에야
+        # 추적·파지 대상이 된다. 벨트가 2.9mm/s로 느려 몇 초 늦게
+        # 잡히는 정도이고, 도달한계(590mm)까지 여유가 충분하다.
+        self.declare_parameter("vision.edge_margin_px", 15)
+        self.declare_parameter("vision.image_width_px", 1280)
         # [9일차, v143] 예측에 쓰는 칼만 속도의 허용 범위.
         # **벨트 실측 3.06mm/s**(캔, 중앙 구간, 표본 151개/20초,
         # 잔차 RMS 0.25mm)의 약 2배를 상한으로 둔다. 벨트는 정속
@@ -286,6 +292,8 @@ class TrackingNode(Node):
         self._detection_min_gap_sec = self.get_parameter(
             "vision.detection_min_gap_sec"
         ).value
+        self._edge_margin_px = self.get_parameter("vision.edge_margin_px").value
+        self._image_width = self.get_parameter("vision.image_width_px").value
         self._vx_min = self.get_parameter("kalman.vx_min_mm_s").value
         self._vx_max = self.get_parameter("kalman.vx_max_mm_s").value
 
@@ -327,6 +335,7 @@ class TrackingNode(Node):
         self._last_detection_arrival = 0.0
         self._stale_detection_drops = 0
         self._vx_clamp_count = 0
+        self._edge_clipped_drops = 0
 
         # [안전 — 6일차, 사고 후 추가] 배치/상태머신이 아직 없어 파지
         # 후 놓는 동작이 없다 -- 들고 있는 채로 다음 물체를 또 집으려
@@ -999,6 +1008,7 @@ class TrackingNode(Node):
                     y1
                     + (y2 - y1) * 0.95
                 )
+                bbox_x1, bbox_x2 = x1, x2
 
             elif (
                 "cx" in det
@@ -1008,6 +1018,7 @@ class TrackingNode(Node):
                 # bbox가 없는 경우 fallback
                 u = float(det["cx"])
                 v = float(det["cy"])
+                bbox_x1 = bbox_x2 = None
 
             else:
                 continue
@@ -1015,6 +1026,42 @@ class TrackingNode(Node):
             # 벨트 영역 밖 detection 제외
             if v < self._belt_pixel_y_min:
                 continue
+
+            # [9일차] **화면 가로 경계에 걸친 검출을 버린다.**
+            #
+            # 사용자 지적("캔의 머리가 나올 때 미리 예측해서 잡는다")을
+            # 앵커 픽셀로 검증했다 -- 파지 확정 시점의 앵커 u가 12~154로
+            # 화면(폭 1280)의 왼쪽 1~12% 구간이었다. 490ml 캔은 화면상
+            # 약 336px인데 앵커가 u=63이면 캔의 왼쪽 1/3이 화면 밖이다.
+            #
+            # 박스가 경계에서 잘리면 그 중심은 물체의 진짜 중심이 아니라
+            # **보이는 부분의 중심**이다. 그걸 목표로 삼으니 그리퍼가
+            # 물체 중심에서 벗어난 곳에 내려앉고, 무거운 물체는 기울어
+            # 벨트에 끌린다(끌리면 무게 일부가 벨트에 실려 net이 실제보다
+            # 가볍게 찍힌다 -- 실측 +448g -> -130g).
+            #
+            # **잘리는 정도가 매번 달라서 상수 보정으로는 못 맞춘다.**
+            # 9일차에 can의 prediction_bias_mm을 0 -> 25 -> 45로 세 번
+            # 조정했는데 전부 이 잘린 박스를 전제로 맞춘 값이라 무효였다
+            # (보정 0에서 27mm 왼쪽, 보정 45에서 37mm 오른쪽 -- 차이 64mm가
+            # 보정 변화량 45mm보다 크다).
+            #
+            # 세로(belt_pixel_y_min)는 이미 거르고 있었는데 가로는 안
+            # 걸러지고 있었다. 양쪽 경계 모두 같은 여유값으로 거른다.
+            if bbox_x1 is not None and self._edge_margin_px > 0:
+                if (
+                    bbox_x1 <= self._edge_margin_px
+                    or bbox_x2 >= self._image_width - self._edge_margin_px
+                ):
+                    self._edge_clipped_drops += 1
+                    if self._edge_clipped_drops % 50 == 1:
+                        self.get_logger().info(
+                            "[DETECT] 화면 경계 검출 제외 "
+                            "(x1=%.0f x2=%.0f, 여유 %dpx, 누적 %d건)"
+                            % (bbox_x1, bbox_x2, self._edge_margin_px,
+                               self._edge_clipped_drops)
+                        )
+                    continue
 
             # ----------------------------------------
             # Pixel → Robot Base
@@ -1897,7 +1944,37 @@ class TrackingNode(Node):
 
         self._stage = "pick"
         self.get_logger().info(f"[EXEC] descend {depth}mm")
+        z_before = None
+        try:
+            z_before = self._get_current_posx()[2]
+        except Exception:
+            pass
         self._call_move_line([0.0, 0.0, -depth, 0.0, 0.0, 0.0], v_vel, v_vel, mode=1)
+
+        # [9일차 진단] **하강 도달 z를 로그로 남긴다.** `hover` 이동에는
+        # 도달 검증이 있는데 하강에는 없어서, 명령값과 실제 도달값이
+        # 다른지 확인할 방법이 아예 없었다. 동작은 바꾸지 않고 기록만
+        # 한다(도달 실패해도 중단하지 않음 -- 이미 집으러 내려온 상태에서
+        # 중단하면 오히려 어정쩡하게 멈춘다).
+        #
+        # 참고 기준: 벨트 평면 z는 config상 316.8, 실측 파지점 319.6~320.2.
+        # battery 110mm(TCP z=320)가 "표면을 거의 스치는" 높이라는 것이
+        # 사용자 실물 감각이고 config 좌표와도 일치한다. z가 310 아래로
+        # 내려가면 벨트를 누르는 영역이다.
+        try:
+            z_after = self._get_current_posx()[2]
+            moved = (z_before - z_after) if z_before is not None else float("nan")
+            self.get_logger().info(
+                "[EXEC] descend 도달 z=%.1f (명령 %.0fmm, 실제 %.1fmm, "
+                "벨트면 약 320)" % (z_after, float(depth), moved)
+            )
+            if z_after < 310.0:
+                self.get_logger().warn(
+                    "[EXEC] 하강 z=%.1f -- 벨트면(약 320)보다 10mm 이상 아래다. "
+                    "파지 실패 시 벨트를 누른다." % z_after
+                )
+        except Exception as exc:
+            self.get_logger().warn(f"[EXEC] 하강 후 z 읽기 실패: {exc}")
 
         self.get_logger().info("[EXEC] close gripper")
         self._call_gripper("c")
@@ -2025,6 +2102,9 @@ class TrackingNode(Node):
         # (baseline/post-pick 둘 다) -- 노이즈를 시간이 아니라 반복
         # measurement 평균으로 줄인다.
         forced_bin = None
+        # [9일차] 아래 파지폭 교차검증을 사람 인계 경로에만 걸기 위한 조회.
+        _route = self._item_routing["routing"].get(item_key) or {}
+        route_type_is_handoff = _route.get("type") == "human_handoff"
         if weight_check is not None:
             weight_kg = self._weigh_with_log(f"{item_key}-postpick")
             # [9일차] n_log=15 제거. 15샘플이 판정에 쓰이는 건 앞 5개뿐인데,
@@ -2057,8 +2137,50 @@ class TrackingNode(Node):
             # 파지실패감지가 이미 읽는 신호를 재사용할 뿐 새 폴링은 없다.
             # 실제로 적용되는 품목은 can뿐이다(weight_check가 정의된
             # 품목 중 pet_labeled는 판정이 null이라 grasp_ok가 None).
+            # [정정 -- 9일차] **`human_handoff` 경로 품목에만 적용한다.**
+            # 처음엔 모든 weight_check 품목에 걸었는데, `can`에서 오작동
+            # 했다 -- 빈 캔이 실제 16g이라 드리프트가 조금만 껴도 10g
+            # 아래로 떨어져 매번 "신뢰불가"로 review_bin에 갔다(완주에서
+            # 빈 캔 2개가 net +1.2g / -79.4g로 둘 다 오배치).
+            #
+            # 이 체크의 원래 목적은 "무거운 물체가 끌려서 가볍게 찍히는
+            # 것을 잡아 사람에게 가는 걸 막는 것"이다. `can`은 bin행이라
+            # 사람에게 가지 않으므로 여기선 안전에 기여하지 않고 오작동만
+            # 한다. 가벼운 것이 정상인 품목에는 걸면 안 된다.
+            # [정정 -- 9일차 야간, v153] **음수 하한을 -30g -> -150g로 넓힌다.**
+            # -30g은 "물체를 들었는데 가벼워짐 = 물리적으로 불가능"이라는
+            # 전제로 잡은 값인데, 그 전제가 틀렸다. 로드셀 자체가 느리게
+            # 진동하기 때문에 **빈 물체도 정상적으로 음수 net이 나온다.**
+            #
+            # 이날 밤 실측(로봇 정지, 그리퍼 빈 상태, measure_pose 고정,
+            # 30초 연속 샘플링):
+            #   - 주기 약 27초, 진폭 약 +-45g의 완만한 진동
+            #     (1285g -> 1376g -> 1285g -> 다시 상승)
+            #   - 표준편차 28.7g, 30초 내 폭 91.6g
+            #   - 벨트 가동 여부는 무관(중앙값 이동 -9.5g, 표준편차 동일)
+            #   - 창을 8초까지 늘려도 중앙값 폭 69g -- **평균/중앙값으로
+            #     제거할 수 없다.** 드리프트 주기가 측정 구간보다 길다.
+            #   - get_workpiece_weight 서비스 1회 호출에 약 770ms 걸린다.
+            #     `interval` 인자는 사실상 의미가 없고 실제 샘플 간격은
+            #     0.8초다(baseline n=3은 0.24초가 아니라 약 2.5초).
+            #
+            # baseline과 postpick 사이는 실측 10.4~15.3초로 드리프트
+            # 반주기에 해당한다 -- 최악 조건이다. 그래서 빈 캔(16g)의
+            # net이 +1.2g / -79.4g처럼 흩어진다. -30g 하한은 이 정상
+            # 범위를 "고장"으로 오판해 **빈 캔을 review_bin으로 보냈고,
+            # 그 결과 빈 캔과 샌드 캔이 둘 다 review_bin에 들어가
+            # 구분이 안 됐다**(완주시험에서 사용자가 지적한 증상).
+            #
+            # -150g은 item_routing.yaml에 문서화된 드리프트 포락선
+            # (사이클간 최대 125g) 바로 바깥이다. 무거운 물체(400g)는
+            # 드리프트 최악에서도 275g으로 읽히므로 음수로 내려갈 수
+            # 없다 -- 즉 -150g 이하는 여전히 진짜 계측 고장을 뜻한다.
+            # 품목별로 재정의하려면 weight_check에 net_min_kg를 준다.
+            net_min = float(weight_check.get("net_min_kg", -0.15))
+
             if (
-                grasp_ok is True
+                route_type_is_handoff
+                and grasp_ok is True
                 and net_weight is not None
                 and net_weight < 0.010
             ):
@@ -2071,11 +2193,11 @@ class TrackingNode(Node):
                     "warn",
                     f"{item_key} 파지·무게 불일치({net_weight*1000:.0f}g) — {forced_bin}으로 보냄",
                 )
-            elif net_weight is not None and net_weight < -0.03:
+            elif net_weight is not None and net_weight < net_min:
                 forced_bin = weight_check["review_bin"]
                 self.get_logger().warn(
                     f"[EXEC] {item_key} 무게판정 신뢰불가(net={net_weight*1000:.1f}g "
-                    f"< -30g, 물리적으로 불가능) -- {forced_bin} 강제"
+                    f"< {net_min*1000:.0f}g, 계측 고장 의심) -- {forced_bin} 강제"
                 )
                 self._publish_ui_alert(
                     "warn",
