@@ -1490,7 +1490,7 @@ class TrackingNode(Node):
             # 5배라 그 회귀를 그대로 재현한다.
             # 진동 패턴 확인은 시간이 안 중요한 지점(can-postpick,
             # handoff-*-presented)에서만 한다.
-            self._weigh_with_log("can-baseline", n=3, interval=0.08)
+            self._weigh_with_log(f"{item_key}-baseline", n=3, interval=0.08)
             if weight_check is not None
             else None
         )
@@ -1642,7 +1642,7 @@ class TrackingNode(Node):
         # measurement 평균으로 줄인다.
         forced_bin = None
         if weight_check is not None:
-            weight_kg = self._weigh_with_log("can-postpick", n_log=15)
+            weight_kg = self._weigh_with_log(f"{item_key}-postpick", n_log=15)
             threshold = weight_check["threshold_kg"]
             net_weight = None
             if weight_kg is not None and baseline_weight is not None:
@@ -1696,7 +1696,23 @@ class TrackingNode(Node):
             self._publish_ui_alert("error", f"{item_key} 라우팅 설정 없음 — 들고 대기")
             return
 
-        if route["type"] == "human_handoff":
+        # [9일차] `forced_bin`(무게 초과 판정)이 `human_handoff`보다 우선한다.
+        # 이 순서가 뒤집혀 있으면 -- 원래 그랬다 -- `weight_check`를
+        # `pet_labeled`에 켜도 무게 초과 판정이 그냥 버려지고 사람에게
+        # 내밀어진다. `human_handoff` 분기가 `forced_bin`을 보기 전에
+        # return해버리기 때문. `can`은 routing이 bin이라 이 결함이
+        # 드러나지 않았다(잠복 상태였음).
+        #
+        # 원칙7("비전으로 못 보는 걸 힘으로 본다")이 실제로 성립하려면
+        # 힘 판정이 비전 라우팅을 덮어쓸 수 있어야 한다. 8일차에 드러난
+        # "내용물 든 캔이 pet_labeled로 오분류되면 무게 안전장치를
+        # 우회한다"는 결함의 본체가 이것이다.
+        if forced_bin is not None:
+            self.get_logger().warn(
+                f"[PLACE] {item_key}: 무게 판정으로 {forced_bin} 우선 "
+                f"(routing={route['type']} 무시)"
+            )
+        elif route["type"] == "human_handoff":
             self._stage = "handoff"
             self._handoff_item(item_key)
             return

@@ -49,6 +49,22 @@ weight_check:
   can:
     threshold_kg: 0.08
     review_bin: review_bin
+  # [9일차] 사람 인계 경로에도 무게 게이트를 켠다. 8일차에 드러난
+  # 결함("내용물 든 캔이 pet_labeled로 오분류되면 무게 검사를 통째로
+  # 건너뛰고 사람에게 간다")의 방어선이다. 오분류가 어느 쪽으로 나든
+  # 결과가 같아진다 -- can으로 잡히면 위의 can 항목이, pet_labeled로
+  # 잡히면 이 항목이 무거운 물체를 review_bin으로 보낸다.
+  #
+  # threshold 0.08kg 근거: 빈 라벨 페트병 약 30g(사용자 실측),
+  # 내용물 든 캔 net +235.1g(8일차 #7 사이클). 그 사이를 가른다.
+  # 빈 캔 net 16.3g / 실리카 채운 캔 86.9g(6일차)와도 일관.
+  #
+  # 주의: 이 항목을 켜면 pet_labeled 사이클에도 baseline 측정이
+  # 들어간다. 측정 시간이 예측 구간(total_ahead)에 포함되므로
+  # 파지 타이밍에 영향이 있다. 페트병 파지 정확도를 실물로 확인할 것.
+  pet_labeled:
+    threshold_kg: 0.08
+    review_bin: review_bin
 
 # 순응제어 기반 사람 핸드오버 (`_handoff_item()`, 6일차 구현).
 # 새 x/y 좌표를 만들지 않고 `_execute_pick`이 이미 도달 검증한
