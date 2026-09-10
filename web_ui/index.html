@@ -64,10 +64,13 @@
      이를 위해 `.app`을 2열 그리드로 바꾸고 `.side`를 `.main` 밖으로
      꺼내 `.app` 직속 자식으로 만들었다(HTML도 같이 수정). */
   .app{height:100vh;display:grid;
-    grid-template-columns:1fr 620px;
+    grid-template-columns:minmax(0,1fr) clamp(440px,39vw,620px);
     grid-template-rows:60px 1fr 96px;
     gap:8px;padding:8px}
-  .app > .topbar{grid-column:1 / -1}
+  /* 실제 HTML의 헤더 클래스는 `bar`다. 이전 `.topbar` 선택자는
+     아무 요소에도 적용되지 않아 헤더가 왼쪽 영상 열에만 배치됐고,
+     1500px 이하 화면에서 브랜드/상태/장치 칩이 서로 겹쳤다. */
+  .app > .bar{grid-column:1 / -1;grid-row:1}
   .app > .main{grid-column:1;grid-row:2;min-height:0}
   .app > .side{grid-column:2;grid-row:2 / 4;min-height:0}
   .app > .rail{grid-column:1;grid-row:3}
@@ -95,6 +98,12 @@
   .pill.off i{background:#3a4048}
   .pill.bad i{background:var(--bad)}
   .clock{font-size:14.5px;color:var(--fg-2);letter-spacing:.04em}
+  .header-link{
+    display:inline-flex;align-items:center;height:30px;padding:0 12px;
+    border:1px solid var(--line-2);border-radius:6px;color:var(--fg-2);
+    font-size:13px;text-decoration:none;white-space:nowrap;
+  }
+  .header-link:hover{background:var(--panel-2);color:var(--fg)}
 
   /* ---------- 메인 ---------- */
   /* [완료 -- 8일차, 사용자 직접 지시] 사이드바(손목캠/처리현황/조작)
@@ -138,7 +147,7 @@
      세로를 줄여도 정보 손실이 적고, 처리 현황(막대 6개 + 마지막 결과)이
      세로를 더 필요로 한다 -- 손목캠을 minmax로 잡아 화면이 낮을 때
      먼저 줄어들게 한다. */
-  .side{display:grid;grid-template-rows:minmax(150px,240px) auto minmax(0,1fr) auto;gap:8px;min-height:0}
+  .side{display:grid;grid-template-rows:minmax(130px,210px) auto minmax(0,1fr) auto auto;gap:8px;min-height:0}
   .side > .card:nth-child(3){overflow-y:auto}
   .card{background:var(--panel);border-radius:8px;padding:15px 16px;min-height:0}
   .hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px}
@@ -163,6 +172,43 @@
   .row .vl{font-size:16px;font-weight:500;text-align:right}
   .sep{height:1px;background:var(--line);margin:13px 0}
   #lastResultText{font-size:14px;color:var(--fg-3);line-height:1.6}
+  .review-open{
+    width:100%;height:34px;margin-top:10px;border:1px solid rgba(240,180,41,.35);
+    border-radius:6px;background:rgba(240,180,41,.08);color:var(--warn);
+    font-size:13px;
+  }
+  .review-open:hover{background:rgba(240,180,41,.14)}
+  .last-card .hd{margin-bottom:6px}
+  .last-card #lastResultText{color:var(--fg-2)}
+
+  /* 검토 대기 목록. 지금은 demo 데이터로 UI 흐름만 검증하고,
+     DB API 연결 단계에서 동일한 DOM에 실제 목록을 주입한다. */
+  .review-dialog{
+    width:min(680px,calc(100vw - 28px));max-height:calc(100vh - 28px);
+    margin:auto;border:1px solid var(--line-2);border-radius:10px;
+    background:var(--panel);color:var(--fg);box-shadow:0 18px 70px rgba(0,0,0,.65);
+    overflow:hidden;
+  }
+  .review-dialog::backdrop{background:rgba(0,0,0,.72)}
+  .review-dialog header{
+    position:sticky;top:0;z-index:1;display:flex;align-items:center;
+    justify-content:space-between;padding:17px 18px;border-bottom:1px solid var(--line);
+    background:var(--panel);
+  }
+  .review-dialog h2{font-size:17px;font-weight:600}
+  .review-close{width:34px;height:34px;border-radius:6px;background:var(--panel-2);font-size:19px}
+  .review-list{display:grid;gap:10px;padding:14px 18px 18px;overflow-y:auto;max-height:calc(100vh - 92px)}
+  .review-empty{padding:36px 14px;text-align:center;color:var(--fg-3);font-size:14px}
+  .review-item{border:1px solid var(--line);border-radius:8px;background:#101317;padding:13px}
+  .review-item-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+  .review-item-title{font-size:15px;font-weight:600}
+  .review-item-time{font-size:11px;color:var(--fg-3);font-family:var(--mono);white-space:nowrap}
+  .review-meta{margin-top:6px;color:var(--fg-2);font-size:13px;line-height:1.55}
+  .review-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:12px}
+  .review-option{display:flex;align-items:center;gap:7px;padding:8px 9px;border:1px solid var(--line);border-radius:6px;color:var(--fg-2);font-size:12.5px;cursor:pointer}
+  .review-option:has(input:checked){border-color:rgba(61,220,151,.5);background:rgba(61,220,151,.08);color:var(--ok)}
+  .review-complete{width:100%;height:36px;margin-top:10px;border-radius:6px;background:#23895f;color:white;font-size:13px}
+  .review-complete:disabled{cursor:not-allowed;background:#262b31;color:var(--fg-3)}
 
   /* 조작 */
   .ops{display:grid;grid-template-columns:1fr 1fr;gap:9px}
@@ -203,6 +249,55 @@
   .al.w i{background:var(--warn)}
   .al.e i{background:var(--bad)}
 
+  /* ---------- 노트북/좁은 관제 화면 ----------
+     현재 개발 PC의 인앱 브라우저(약 1439x731)에서도 영상, 처리 현황,
+     조작부가 한 화면에 모두 보이도록 간격과 고정 높이를 줄인다.
+     넓은 1600x900 관제 화면에서는 위 기본값을 그대로 사용한다. */
+  @media (max-width:1500px), (max-height:800px){
+    body{font-size:16px}
+    .app{
+      grid-template-columns:minmax(0,1fr) clamp(430px,43vw,520px);
+      grid-template-rows:52px minmax(0,1fr) 86px;
+      gap:6px;padding:6px;
+    }
+    .bar{gap:13px;padding:0 14px;min-width:0}
+    .brand{font-size:14px;gap:7px;white-space:nowrap}
+    .chip{height:28px;padding:0 10px;font-size:13px;gap:6px;white-space:nowrap}
+    .pills{gap:10px;min-width:0}
+    .pill{font-size:12.5px;gap:5px;white-space:nowrap}
+    .clock{font-size:13px;white-space:nowrap}
+    .header-link{height:27px;padding:0 9px;font-size:12px}
+
+    .side{
+      grid-template-rows:minmax(105px,115px) auto minmax(178px,1fr) auto auto;
+      gap:6px;
+    }
+    .card{padding:10px 12px}
+    .hd{margin-bottom:8px}
+    .st{font-size:12px;padding:5px 1px}
+    .row{grid-template-columns:64px 1fr 28px;gap:9px;margin-bottom:7px}
+    .row .lb{font-size:13px}
+    .row .vl{font-size:14px}
+    .sep{margin:8px 0}
+    #lastResultText{font-size:12.5px;line-height:1.35}
+    .review-open{height:29px;margin-top:7px;font-size:12px}
+    .last-card{padding-top:8px;padding-bottom:8px}
+    .last-card .hd{margin-bottom:3px}
+
+    .ops{gap:6px}
+    .side > .card:last-child .ops .op{min-height:34px}
+    .side > .card:last-child .estop-btn{min-height:56px}
+    .side > .card:last-child > div[style]{height:6px !important}
+    .op{height:34px;font-size:13px}
+    .estop-btn{height:56px;font-size:16px}
+    .estop-btn small{font-size:11px}
+
+    .rail{padding:4px 12px}
+    .al{gap:6px;padding-right:10px;margin-right:10px}
+    .al time{font-size:10px}
+    .al p{font-size:11.5px}
+  }
+
   /* ---------- 비상정지 배너 ---------- */
   #estopBanner{
     position:fixed;top:0;left:0;right:0;z-index:60;
@@ -223,6 +318,7 @@
     <span id="elapsedText" class="num" style="font-size:14.5px;color:var(--fg-3)"></span>
     <div class="spacer"></div>
     <div class="pills" id="healthPills"></div>
+    <a class="header-link" id="statisticsLink" href="statistics.html">처리 통계</a>
     <span class="clock mono" id="clockText">--:--:--</span>
   </header>
 
@@ -264,7 +360,11 @@
         <div class="sep"></div>
         <div id="handoffBars"></div>
         <div id="reviewBars"></div>
-        <div class="sep"></div>
+        <button class="review-open" id="btnOpenReviews">검토 목록 열기</button>
+      </section>
+
+      <section class="card last-card">
+        <div class="hd"><h2>마지막 처리</h2><span class="num" id="lastResultTime">--:--:--</span></div>
         <p id="lastResultText">마지막 처리 결과 없음</p>
       </section>
 
@@ -288,6 +388,14 @@
   <footer class="rail" id="alertRail"></footer>
 
 </div>
+
+<dialog class="review-dialog" id="reviewDialog" aria-labelledby="reviewDialogTitle">
+  <header>
+    <h2 id="reviewDialogTitle">검토 대기 목록</h2>
+    <button class="review-close" id="btnCloseReviews" aria-label="닫기">×</button>
+  </header>
+  <div class="review-list" id="reviewList"></div>
+</dialog>
 
 <script>
 (function () {
@@ -313,6 +421,9 @@
   const VIDEO_W = qs.get("video_width") || "640";
   const VIDEO_H = qs.get("video_height") || "360";
   const VIDEO_Q = qs.get("video_quality") || "50";
+  // DB API는 기본적으로 이 UI와 같은 8000 포트에서 제공된다.
+  // UI만 별도로 서빙할 때는 ?api_base=http://관제PC_IP:8000 으로 지정한다.
+  const API_BASE = (qs.get("api_base") || "").replace(/\/$/, "");
   // [신규 -- 8일차, v107 회신] 데모 모드 -- 로봇/카메라 없이 화면
   // 검토용. **기본값은 꺼짐(안전 쪽), `?demo=1`일 때만 켜진다** --
   // 코드 상단 상수(예: `const DEMO = true`)로 만들면 끄는 걸 잊고
@@ -362,11 +473,29 @@
   const DEMO_PAYLOAD = {
     state: "RUNNING",
     stage: "pick",
-    counts: { plastic_bin: 0, can_bin: 3, paper_bin: 2, battery_bin: 1, human_handoff: 2, review_bin: 3 },
-    total: 11,
-    last: { item: "can", dest: "can_bin", weight_g: 16 },
+    counts: { plastic_bin: 0, can_bin: 3, paper_bin: 2, battery_bin: 1, human_handoff: 2, review_bin: 6 },
+    // review_pending 6건은 작업자가 확정하기 전이므로 완료 합계에서 제외.
+    total: 8,
+    last: { item: "can", dest: "can_bin", weight_g: 16, ts: Date.now() / 1000 },
     health: { camera: true, robot: true, conveyor: true, stt: true, tts: false },
   };
+  const REVIEW_CLASSES = ["battery", "can", "paper", "pet_labeled", "plastic", "plastic_bag"];
+  const FINAL_DESTINATION = {
+    battery: "battery_bin", can: "can_bin", paper: "paper_bin",
+    pet_labeled: "human_handoff", plastic: "plastic_bin", plastic_bag: "plastic_bin",
+  };
+  const DEMO_REVIEW_ITEMS = [
+    { id: 101, predicted_class: "plastic", confidence: 0.72, review_reason: "weight_exceeded", created_at: (Date.now() - 125000) / 1000 },
+    { id: 102, predicted_class: "can", confidence: 0.64, review_reason: "low_confidence", created_at: (Date.now() - 78000) / 1000 },
+    { id: 103, predicted_class: "pet_labeled", confidence: 0.81, review_reason: "handoff_timeout", created_at: (Date.now() - 31000) / 1000 },
+    { id: 104, predicted_class: "paper", confidence: 0.58, review_reason: "low_confidence", created_at: (Date.now() - 24000) / 1000 },
+    { id: 105, predicted_class: "plastic_bag", confidence: 0.91, review_reason: "manual_review_required", created_at: (Date.now() - 17000) / 1000 },
+    { id: 106, predicted_class: "battery", confidence: 0.69, review_reason: "low_confidence", created_at: (Date.now() - 9000) / 1000 },
+  ];
+  let liveReviewItems = [];
+  let latestRosPayload = null;
+  let latestDbDashboard = null;
+  let dbAvailable = null;
   const DEMO_ALERTS = [
     { level: "error", msg: "파지 실패 · 재시도 1/2" },
     { level: "warn", msg: "예측 좌표 도달 범위 초과 · 건너뜀" },
@@ -394,8 +523,15 @@
   const alertRail = el("alertRail");
   const stageFlow = el("stageFlow");
   const lastResultText = el("lastResultText");
+  const lastResultTime = el("lastResultTime");
   const healthPills = el("healthPills");
   const estopBanner = el("estopBanner");
+  const reviewDialog = el("reviewDialog");
+  const reviewList = el("reviewList");
+  const btnOpenReviews = el("btnOpenReviews");
+  const btnCloseReviews = el("btnCloseReviews");
+  const statisticsLink = el("statisticsLink");
+  if (DEMO_MODE) statisticsLink.href = "statistics.html?demo=1";
 
   // ---------------------------------------------------------------
   // 시계 -- [신규 -- v104 시안] 상단바 우측, 순수 표시용(로컬 시계)
@@ -546,7 +682,8 @@
     }
     lastStage = stage;
 
-    render(payload);
+    latestRosPayload = payload;
+    renderCurrentState();
   }
   if (uiStateTopic) uiStateTopic.subscribe(onUiState);
 
@@ -585,6 +722,209 @@
     }
   }
 
+  // ---------------------------------------------------------------
+  // review_bin 작업자 확인 UI. DB API 연결 전에는 demo 배열만 수정하며,
+  // 실제 모드에서는 미연결 안내를 보여준다. API 단계에서는 목록 조회와
+  // 완료 처리 부분만 fetch 호출로 교체하면 된다.
+  // ---------------------------------------------------------------
+  function formatClockTime(value) {
+    if (value == null) return "--:--:--";
+    const raw = typeof value === "number" ? value * 1000 : value;
+    const d = new Date(raw);
+    if (Number.isNaN(d.getTime())) return "--:--:--";
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  }
+
+  function reviewReasonLabel(reason) {
+    const labels = {
+      weight_exceeded: "무게 기준 초과",
+      weight_measurement_unreliable: "무게 측정 신뢰 불가",
+      low_confidence: "낮은 인식 신뢰도",
+      handoff_timeout: "사람 인계 시간 초과",
+      manual_review_required: "작업자 확인 필요",
+    };
+    return labels[reason] || reason || "사유 없음";
+  }
+
+  async function openReviewDialog() {
+    if (!DEMO_MODE) await loadReviews();
+    renderReviewList();
+    if (typeof reviewDialog.showModal === "function") reviewDialog.showModal();
+    else reviewDialog.setAttribute("open", "");
+  }
+
+  function closeReviewDialog() {
+    if (typeof reviewDialog.close === "function") reviewDialog.close();
+    else reviewDialog.removeAttribute("open");
+  }
+
+  function renderReviewList() {
+    reviewList.innerHTML = "";
+    const items = DEMO_MODE ? DEMO_REVIEW_ITEMS : liveReviewItems;
+
+    if (!DEMO_MODE && dbAvailable === false) {
+      const empty = document.createElement("p");
+      empty.className = "review-empty";
+      empty.textContent = "DB API에 연결할 수 없습니다. API 서버와 .env 설정을 확인해주세요.";
+      reviewList.appendChild(empty);
+      return;
+    }
+    if (items.length === 0) {
+      const empty = document.createElement("p");
+      empty.className = "review-empty";
+      empty.textContent = "검토 대기 중인 물품이 없습니다.";
+      reviewList.appendChild(empty);
+      return;
+    }
+
+    for (const item of items) {
+      const card = document.createElement("article");
+      card.className = "review-item";
+
+      const head = document.createElement("div");
+      head.className = "review-item-head";
+      const title = document.createElement("strong");
+      title.className = "review-item-title";
+      title.textContent = `검토 #${item.id}`;
+      const time = document.createElement("time");
+      time.className = "review-item-time";
+      time.textContent = formatClockTime(item.created_at);
+      head.append(title, time);
+
+      const meta = document.createElement("p");
+      meta.className = "review-meta";
+      const confidenceText = Number.isFinite(Number(item.confidence))
+        ? `${(Number(item.confidence) * 100).toFixed(1)}%`
+        : "기록 없음";
+      const predictedText = item.predicted_class || "기록 없음";
+      meta.textContent = `AI 예측: ${predictedText} · 신뢰도 ${confidenceText} · ${reviewReasonLabel(item.review_reason)}`;
+
+      const options = document.createElement("div");
+      options.className = "review-options";
+      const radioName = `review-class-${item.id}`;
+      for (const className of REVIEW_CLASSES) {
+        const label = document.createElement("label");
+        label.className = "review-option";
+        const radio = document.createElement("input");
+        radio.type = "radio";
+        radio.name = radioName;
+        radio.value = className;
+        const textNode = document.createElement("span");
+        textNode.textContent = className;
+        label.append(radio, textNode);
+        options.appendChild(label);
+      }
+
+      const complete = document.createElement("button");
+      complete.className = "review-complete";
+      complete.textContent = "선택한 품목으로 처리 완료";
+      complete.disabled = true;
+      options.addEventListener("change", () => { complete.disabled = false; });
+      complete.addEventListener("click", () => completeReview(item.id, radioName, complete));
+
+      card.append(head, meta, options, complete);
+      reviewList.appendChild(card);
+    }
+  }
+
+  async function completeReview(itemId, radioName, button) {
+    if (DEMO_MODE) {
+      completeDemoReview(itemId, radioName);
+      return;
+    }
+    const checked = reviewList.querySelector(`input[name="${radioName}"]:checked`);
+    if (!checked) return;
+    button.disabled = true;
+    button.textContent = "DB 반영 중...";
+    try {
+      const response = await fetch(`${API_BASE}/api/reviews/${itemId}/complete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ final_class: checked.value }),
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      await Promise.all([loadReviews(), loadDashboard()]);
+      renderReviewList();
+      pushAlert({ level: "info", msg: `검토 #${itemId} 완료 · ${checked.value}` });
+    } catch (error) {
+      button.disabled = false;
+      button.textContent = "다시 시도";
+      pushAlert({ level: "error", msg: `검토 #${itemId} DB 반영 실패` });
+      console.error("[DB API] review complete failed", error);
+    }
+  }
+
+  async function loadReviews() {
+    try {
+      const response = await fetch(`${API_BASE}/api/reviews`, { cache: "no-store" });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const payload = await response.json();
+      liveReviewItems = Array.isArray(payload.items) ? payload.items : [];
+      dbAvailable = true;
+    } catch (error) {
+      dbAvailable = false;
+      console.error("[DB API] review list failed", error);
+    }
+  }
+
+  async function loadDashboard() {
+    if (DEMO_MODE) return;
+    try {
+      const response = await fetch(`${API_BASE}/api/dashboard`, { cache: "no-store" });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      latestDbDashboard = await response.json();
+      dbAvailable = true;
+    } catch (error) {
+      dbAvailable = false;
+      console.error("[DB API] dashboard failed", error);
+    }
+    renderCurrentState();
+  }
+
+  function renderCurrentState() {
+    const base = latestRosPayload || {
+      state: "IDLE", stage: "idle", counts: {}, total: 0, last: null, health: {},
+    };
+    const payload = {
+      ...base,
+      health: { ...(base.health || {}), db: dbAvailable },
+    };
+    if (latestDbDashboard) {
+      payload.counts = latestDbDashboard.counts || {};
+      payload.total = latestDbDashboard.total || 0;
+      payload.last = latestDbDashboard.last || null;
+    }
+    render(payload);
+  }
+
+  function completeDemoReview(itemId, radioName) {
+    if (!DEMO_MODE) return;
+    const checked = reviewList.querySelector(`input[name="${radioName}"]:checked`);
+    if (!checked) return;
+    const index = DEMO_REVIEW_ITEMS.findIndex((item) => item.id === itemId);
+    if (index < 0) return;
+
+    const selectedClass = checked.value;
+    const destination = FINAL_DESTINATION[selectedClass] || "manual_handoff";
+    DEMO_REVIEW_ITEMS.splice(index, 1);
+    DEMO_PAYLOAD.counts.review_bin = Math.max(0, (DEMO_PAYLOAD.counts.review_bin || 0) - 1);
+    DEMO_PAYLOAD.counts[destination] = (DEMO_PAYLOAD.counts[destination] || 0) + 1;
+    DEMO_PAYLOAD.total += 1;
+    DEMO_PAYLOAD.last = {
+      item: selectedClass, dest: destination, reason: "manual_review", ts: Date.now() / 1000,
+    };
+    render(DEMO_PAYLOAD);
+    renderReviewList();
+    pushAlert({ level: "info", msg: `검토 #${itemId} 완료 · ${selectedClass}` });
+  }
+
+  btnOpenReviews.addEventListener("click", openReviewDialog);
+  btnCloseReviews.addEventListener("click", closeReviewDialog);
+  reviewDialog.addEventListener("click", (event) => {
+    if (event.target === reviewDialog) closeReviewDialog();
+  });
+
   // [통합 -- v104] 기존 renderMain(메인 화면)/renderDetail(상세
   // 페이지)를 하나로 합쳤다 -- 상세 페이지를 없애고(3절 결정) 그
   // 내용을 사이드바에 상시 표시하므로 화면이 하나뿐이라 분리할
@@ -617,6 +957,8 @@
     renderBarGroup(normalBars, NORMAL_BINS, counts, barMax, "normal");
     renderBarGroup(handoffBars, HANDOFF_BINS, counts, barMax, "handoff");
     renderBarGroup(reviewBars, REVIEW_BINS, counts, barMax, "review");
+    const pendingReviewCount = counts.review_bin || 0;
+    btnOpenReviews.textContent = `검토 목록 열기 (${pendingReviewCount})`;
 
     renderStage(stage);
 
@@ -624,10 +966,13 @@
     if (last) {
       const destLabel = last.dest || "(처리 중)";
       const weightPart = (last.weight_g != null) ? ` · 무게 ${last.weight_g} g` : "";
-      const reasonPart = last.reason ? ` (${last.reason === "over_weight" ? "무게 초과" : last.reason})` : "";
+      const reasonLabels = { over_weight: "무게 초과", manual_review: "작업자 확인" };
+      const reasonPart = last.reason ? ` (${reasonLabels[last.reason] || last.reason})` : "";
       lastResultText.textContent = `방금 ${last.item} → ${destLabel}${weightPart}${reasonPart}`;
+      lastResultTime.textContent = formatClockTime(last.ts);
     } else {
       lastResultText.textContent = "마지막 처리 결과 없음";
+      lastResultTime.textContent = "--:--:--";
     }
 
     renderHealth(payload.health || {});
@@ -669,7 +1014,7 @@
   function renderHealth(health) {
     const rows = [
       ["camera", "카메라"], ["robot", "로봇"], ["conveyor", "컨베이어"],
-      ["stt", "STT"], ["tts", "TTS"],
+      ["stt", "STT"], ["tts", "TTS"], ["db", "DB"],
     ];
     healthPills.innerHTML = "";
     for (const [key, label] of rows) {
@@ -751,6 +1096,9 @@
     busySinceWallClock = Date.now() - 12000;
     render(DEMO_PAYLOAD);
     for (const a of DEMO_ALERTS) pushAlert(a);
+  } else {
+    loadDashboard();
+    setInterval(loadDashboard, 2000);
   }
 
 })();
