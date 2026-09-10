@@ -10,9 +10,20 @@ import importlib.util
 from pathlib import Path
 
 import yaml
+from ament_index_python.packages import (
+    PackageNotFoundError,
+    get_package_share_directory,
+)
 
-_PKG_ROOT = Path(__file__).resolve().parents[1]
-_CONFIG_DIR = _PKG_ROOT / "config"
+
+def _resolve_config_dir() -> Path:
+    try:
+        return Path(get_package_share_directory("rocycle_robot")) / "config"
+    except PackageNotFoundError:
+        return Path(__file__).resolve().parents[1] / "config"
+
+
+_CONFIG_DIR = _resolve_config_dir()
 
 
 def load_item_routing(path: Path | None = None) -> dict:
