@@ -304,8 +304,17 @@ class TrackingNode(Node):
         #     같은 ROI 좌표가 정확히 같은 영역은 아니다 -- 1단계에서는
         #     경향만 본다.
         self.declare_parameter("place_check.enabled", True)
-        self.declare_parameter("place_check.open_joint_rad", -0.4793)
-        self.declare_parameter("place_check.open_tolerance_rad", 0.15)
+        # [정정 -- 10일차, v159] **"기준값 +- 허용범위"에서 "경계값"으로
+        # 바꾼다.** 처음엔 열림 기준 -0.4793에서 +-0.15로 잡았는데,
+        # 실측 11건에서 열림 값 자체가 넓게 퍼져 오탐이 났다:
+        #     배치 성공(열림)  -0.4793 x4, -0.4668 x2, -0.4638,
+        #                      -0.3953, -0.2856   (폭 0.194)
+        #     파지 실패(빈손)  +0.1622 x2
+        # -0.2856이 허용범위를 벗어나 "안 열림(의심)" 오탐이 났다
+        # (실제로는 정상 배치). 두 군집은 0.448 떨어져 있으므로
+        # 경계값 하나로 가르는 것이 맞다 -- 중간값 -0.06을 쓴다
+        # (양쪽 여유 각각 약 0.22).
+        self.declare_parameter("place_check.open_max_rad", -0.06)
         # ============================================================
         # [9일차 야간, v157] **회전각 추정 1단계 -- 로그만.**
         # ============================================================
@@ -331,6 +340,8 @@ class TrackingNode(Node):
         #     뚜껑     세장비 1.08  -> 원형이라 각도 무의미(자동 배제 근거)
         #     490캔    세장비 2.79  (실제 168/66 = 2.5와 일치)
         #     건전지   세장비 2.90, 각도 -5.1 ~ -5.7도로 일관
+        # [v158] `/ui/detections` 규격의 h. 폭은 vision.image_width_px 재사용.
+        self.declare_parameter("vision.image_height_px", 720)
         self.declare_parameter("rotation_check.enabled", True)
         self.declare_parameter("rotation_check.image_topic", "/image_raw")
         self.declare_parameter("rotation_check.min_elongation", 1.2)
@@ -401,12 +412,12 @@ class TrackingNode(Node):
             self.get_parameter("grasp_check.bg_threshold").value
         )
         self._place_check_enabled = self.get_parameter("place_check.enabled").value
-        self._place_open_joint = float(
-            self.get_parameter("place_check.open_joint_rad").value
+        self._place_open_max = float(
+            self.get_parameter("place_check.open_max_rad").value
         )
-        self._place_open_tol = float(
-            self.get_parameter("place_check.open_tolerance_rad").value
-        )
+        self._image_height = self.get_parameter("vision.image_height_px").value
+        # [v158] `reach_limit_px`는 계산 비용이 있어 한 번만 구해 캐시한다.
+        self._reach_limit_px = None
         self._rot_check_enabled = self.get_parameter("rotation_check.enabled").value
         self._rot_check_topic = self.get_parameter("rotation_check.image_topic").value
         self._rot_min_elong = float(
@@ -559,6 +570,11 @@ class TrackingNode(Node):
 
         self._ui_state_pub = self.create_publisher(String, "/ui/state", 10)
         self._ui_alert_pub = self.create_publisher(String, "/ui/alert", 10)
+        # [9일차 -> 10일차, v158] **`/ui/detections` 누락을 메운다.**
+        # UI 설계안(3절)은 `/ui/state`, `/ui/alert`, `/ui/detections`
+        # 세 토픽을 규격으로 정하는데 이 노드는 앞의 둘만 발행하고
+        # 있었다. 화면에 bbox 오버레이를 그리려면 이 토픽이 필요하다.
+        self._ui_det_pub = self.create_publisher(String, "/ui/detections", 10)
 
         # 카메라 생존 신호. 원본(`tracking_node.py`)은 `/image_raw`를
         # 직접 구독하니까 그 콜백에서 시각을 찍었는데, 이 노드는 Docker
@@ -950,13 +966,12 @@ class TrackingNode(Node):
                     "[PLACECHK] 그리퍼 위치 미수신 -- 개방 확인 건너뜀"
                 )
                 return
-            gap = abs(joint - self._place_open_joint)
-            ok = gap <= self._place_open_tol
+            ok = joint <= self._place_open_max
             msg = (
-                "[PLACECHK] %s -> %s 개방폭 joint=%+.4f (열림 기준 %+.4f, "
-                "차이 %.4f, 허용 %.4f) 판정=%s -- 기록 전용"
-                % (item_key, bin_name, joint, self._place_open_joint, gap,
-                   self._place_open_tol, "열림" if ok else "안 열림(의심)")
+                "[PLACECHK] %s -> %s 개방폭 joint=%+.4f (경계 %+.4f 이하면 열림) "
+                "판정=%s -- 기록 전용"
+                % (item_key, bin_name, joint, self._place_open_max,
+                   "열림" if ok else "안 열림(의심)")
             )
             if ok:
                 self.get_logger().info(msg)
@@ -1185,6 +1200,59 @@ class TrackingNode(Node):
         out.data = json.dumps(payload, ensure_ascii=False)
         self._ui_alert_pub.publish(out)
 
+    def _get_reach_limit_px(self) -> float | None:
+        """[10일차, v158] `conveyor.reach_limit_stop_x`(베이스 mm)를 화면
+        픽셀 x로 환산해 돌려준다. UI가 "이 선을 넘으면 포기" 경계를
+        그리는 데 쓴다(설계안 3절 `reach_limit_px`).
+
+        **역투영 함수를 새로 쓰지 않고 `pixel_to_base`를 스캔한다.**
+        정투영 경로는 왜곡 계수와 벨트 평면 보정(`correct_belt_xy`)까지
+        검증된 코드인데, 역변환을 따로 구현하면 그 보정을 다시 뒤집어야
+        해서 새 오차원이 생긴다. u를 훑어 base_x가 임계를 넘는 지점을
+        찾으면 같은 경로를 그대로 재사용할 수 있다.
+
+        결과는 카메라·캘리브레이션이 바뀌지 않는 한 고정이므로 한 번만
+        계산해 캐시한다. 계산 실패 시 None을 돌려주고(규격상 필드는
+        유지), 다음 호출에서 다시 시도하지 않는다 -- 0.5초마다 도는
+        타이머에서 실패를 반복하면 로그만 더럽힌다.
+        """
+        if self._reach_limit_px is not None:
+            return self._reach_limit_px if self._reach_limit_px >= 0 else None
+        if not self._is_calibrated():
+            return None
+        try:
+            v = float(self._belt_pixel_y_min) + 120.0   # 벨트 앵커가 실제로 놓이는 행 부근
+            prev_u, prev_x = None, None
+            found = None
+            for u in range(0, int(self._image_width) + 1, 4):
+                try:
+                    bx = float(self.pixel_to_base(float(u), v)[0])
+                except Exception:
+                    continue
+                if prev_x is not None and prev_x < self._reach_limit_stop_x <= bx:
+                    # 선형 보간으로 교차점 픽셀을 구한다
+                    t = (self._reach_limit_stop_x - prev_x) / (bx - prev_x)
+                    found = prev_u + t * (u - prev_u)
+                    break
+                prev_u, prev_x = u, bx
+            if found is None:
+                self.get_logger().warn(
+                    "[UI] reach_limit_px 산출 실패 -- base_x가 화면 안에서 "
+                    f"{self._reach_limit_stop_x:.0f}mm를 넘지 않는다. null로 발행한다."
+                )
+                self._reach_limit_px = -1.0
+                return None
+            self._reach_limit_px = round(found, 1)
+            self.get_logger().info(
+                "[UI] reach_limit_px=%.1f (base_x %.0fmm, 기준행 v=%.0f)"
+                % (self._reach_limit_px, self._reach_limit_stop_x, v)
+            )
+            return self._reach_limit_px
+        except Exception as exc:
+            self.get_logger().warn(f"[UI] reach_limit_px 계산 실패: {exc}")
+            self._reach_limit_px = -1.0
+            return None
+
     def _publish_ui_state(self) -> None:
         """0.5초 주기(2Hz) 상태 스냅샷 발행.
 
@@ -1213,6 +1281,7 @@ class TrackingNode(Node):
             "counts": counts,
             "total": sum(counts.values()),
             "last": self._last_result,
+            "reach_limit_px": self._get_reach_limit_px(),
             "health": {
                 "camera": camera_ok,
                 "robot": None if self._dry_run else True,
@@ -1385,6 +1454,8 @@ class TrackingNode(Node):
             return
 
         detections = _deduplicate_cross_class_detections(detections)
+
+        ui_items = []   # [v158] `/ui/detections` 항목 수집용
 
         # [9일차] **파지 중 큐에 쌓인 검출 버스트를 버린다.**
         # 파지 동작이 메인 executor를 블로킹하는 동안 검출 메시지가
@@ -1713,6 +1784,33 @@ class TrackingNode(Node):
                     self._holding,
                 )
             )
+
+            # [v158] `/ui/detections` 항목 수집. 규격:
+            # items[{cls, conf, bbox, anchor, pending, required, locked}]
+            _pend = int(track["pending_count"])
+            ui_items.append({
+                "cls": class_name,
+                "conf": round(float(confidence), 4),
+                "bbox": det_bbox,
+                "anchor": [round(float(u), 1), round(float(v), 1)],
+                "pending": _pend,
+                "required": int(self._min_consecutive_frames),
+                "locked": _pend >= self._min_consecutive_frames,
+            })
+
+        # [v158] 프레임 단위 발행. 검출이 0건이어도 발행한다 --
+        # UI가 "이전 프레임 잔상"을 지우려면 빈 목록이 필요하다.
+        try:
+            _m = String()
+            _m.data = json.dumps({
+                "ts": time.time(),
+                "w": self._image_width,
+                "h": self._image_height,
+                "items": ui_items,
+            }, ensure_ascii=False)
+            self._ui_det_pub.publish(_m)
+        except Exception as exc:  # UI 발행이 파지 파이프라인을 깨선 안 된다
+            self.get_logger().warn(f"[UI] /ui/detections 발행 실패: {exc}")
 
         # --------------------------------------------
         # 미검출 Track 관리
